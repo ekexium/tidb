@@ -1013,6 +1013,7 @@ var MySQLErrName = map[uint16]*mysql.ErrMessage{
 	ErrInconsistentRowValue:          mysql.Message("writing inconsistent data in table: %s, expected-values:{%s} != record-values:{%s}", []int{1, 2}),
 	ErrInconsistentHandle:            mysql.Message("writing inconsistent data in table: %s, index: %s, index-handle:%#v != record-handle:%#v, index: %#v, record: %#v", []int{2, 3, 4, 5}),
 	ErrInconsistentIndexedValue:      mysql.Message("writing inconsistent data in table: %s, index: %s, col: %s, indexed-value:{%s} != record-value:{%s}", []int{3, 4}),
+	ErrAssertionFailed:               mysql.Message("assertion failed: key: %s, assertion: %s, start_ts: %v, existing start ts: %v, existing commit ts: %v", []int{0}),
 
 	ErrWarnOptimizerHintInvalidInteger:  mysql.Message("integer value is out of range in '%s'", nil),
 	ErrWarnOptimizerHintUnsupportedHint: mysql.Message("Optimizer hint %s is not supported by TiDB and is ignored", nil),
@@ -1060,7 +1061,7 @@ var MySQLErrName = map[uint16]*mysql.ErrMessage{
 	ErrMultiStatementDisabled:          mysql.Message("client has multi-statement capability disabled. Run SET GLOBAL tidb_multi_statement_mode='ON' after you understand the security risk", nil),
 	ErrAsOf:                            mysql.Message("invalid as of timestamp: %s", nil),
 	ErrVariableNoLongerSupported:       mysql.Message("option '%s' is no longer supported. Reason: %s", nil),
-	ErrInvalidAttributesSpec:           mysql.Message("Invalid attributes '%s': %s", nil),
+	ErrInvalidAttributesSpec:           mysql.Message("Invalid attributes: %s", nil),
 	ErrPlacementPolicyExists:           mysql.Message("Placement policy '%-.192s' already exists", nil),
 	ErrPlacementPolicyNotExists:        mysql.Message("Unknown placement policy '%-.192s'", nil),
 	ErrPlacementPolicyWithDirectOption: mysql.Message("Placement policy '%s' can't co-exist with direct placement options", nil),

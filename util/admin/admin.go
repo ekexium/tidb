@@ -20,14 +20,12 @@ import (
 	"math"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/pingcap/errors"
 	"github.com/pingcap/tidb/errno"
 	"github.com/pingcap/tidb/expression"
 	"github.com/pingcap/tidb/kv"
 	"github.com/pingcap/tidb/meta"
-	"github.com/pingcap/tidb/parser/ast"
 	"github.com/pingcap/tidb/parser/model"
 	"github.com/pingcap/tidb/parser/mysql"
 	"github.com/pingcap/tidb/sessionctx"
@@ -125,11 +123,6 @@ func IsJobRollbackable(job *model.Job) bool {
 	return true
 }
 
-// MayNeedBackfill returns whether the action type may need to backfill the data.
-func MayNeedBackfill(tp model.ActionType) bool {
-	return tp == model.ActionAddIndex || tp == model.ActionAddPrimaryKey || tp == model.ActionModifyColumn
-}
-
 // CancelJobs cancels the DDL jobs.
 func CancelJobs(txn kv.Transaction, ids []int64) ([]error, error) {
 	if len(ids) == 0 {
@@ -147,51 +140,52 @@ func CancelJobs(txn kv.Transaction, ids []int64) ([]error, error) {
 		return nil, errors.Trace(err)
 	}
 	jobs := append(generalJobs, addIdxJobs...)
-
+	jobsMap := make(map[int64]int)
 	for i, id := range ids {
-		found := false
-		for j, job := range jobs {
-			if id != job.ID {
-				logutil.BgLogger().Debug("the job that needs to be canceled isn't equal to current job",
-					zap.Int64("need to canceled job ID", id),
-					zap.Int64("current job ID", job.ID))
-				continue
-			}
-			found = true
-			// These states can't be cancelled.
-			if job.IsDone() || job.IsSynced() {
-				errs[i] = ErrCancelFinishedDDLJob.GenWithStackByArgs(id)
-				continue
-			}
-			// If the state is rolling back, it means the work is cleaning the data after cancelling the job.
-			if job.IsCancelled() || job.IsRollingback() || job.IsRollbackDone() {
-				continue
-			}
-			if !IsJobRollbackable(job) {
-				errs[i] = ErrCannotCancelDDLJob.GenWithStackByArgs(job.ID)
-				continue
-			}
+		jobsMap[id] = i
+	}
+	for j, job := range jobs {
+		i, ok := jobsMap[job.ID]
+		if !ok {
+			logutil.BgLogger().Debug("the job that needs to be canceled isn't equal to current job",
+				zap.Int64("need to canceled job ID", job.ID),
+				zap.Int64("current job ID", job.ID))
+			continue
+		}
+		delete(jobsMap, job.ID)
+		// These states can't be cancelled.
+		if job.IsDone() || job.IsSynced() {
+			errs[i] = ErrCancelFinishedDDLJob.GenWithStackByArgs(job.ID)
+			continue
+		}
+		// If the state is rolling back, it means the work is cleaning the data after cancelling the job.
+		if job.IsCancelled() || job.IsRollingback() || job.IsRollbackDone() {
+			continue
+		}
+		if !IsJobRollbackable(job) {
+			errs[i] = ErrCannotCancelDDLJob.GenWithStackByArgs(job.ID)
+			continue
+		}
 
-			job.State = model.JobStateCancelling
-			// Make sure RawArgs isn't overwritten.
-			err := json.Unmarshal(job.RawArgs, &job.Args)
-			if err != nil {
-				errs[i] = errors.Trace(err)
-				continue
-			}
-			if MayNeedBackfill(job.Type) {
-				offset := int64(j - len(generalJobs))
-				err = t.UpdateDDLJob(offset, job, true, meta.AddIndexJobListKey)
-			} else {
-				err = t.UpdateDDLJob(int64(j), job, true)
-			}
-			if err != nil {
-				errs[i] = errors.Trace(err)
-			}
+		job.State = model.JobStateCancelling
+		// Make sure RawArgs isn't overwritten.
+		err := json.Unmarshal(job.RawArgs, &job.Args)
+		if err != nil {
+			errs[i] = errors.Trace(err)
+			continue
 		}
-		if !found {
-			errs[i] = ErrDDLJobNotFound.GenWithStackByArgs(id)
+		if j >= len(generalJobs) {
+			offset := int64(j - len(generalJobs))
+			err = t.UpdateDDLJob(offset, job, true, meta.AddIndexJobListKey)
+		} else {
+			err = t.UpdateDDLJob(int64(j), job, true)
 		}
+		if err != nil {
+			errs[i] = errors.Trace(err)
+		}
+	}
+	for id, i := range jobsMap {
+		errs[i] = ErrDDLJobNotFound.GenWithStackByArgs(id)
 	}
 	return errs, nil
 }
@@ -293,8 +287,14 @@ func IterAllDDLJobs(txn kv.Transaction, finishFn func([]*model.Job) (bool, error
 	return IterHistoryDDLJobs(txn, finishFn)
 }
 
-func getCount(exec sqlexec.RestrictedSQLExecutor, stmt ast.StmtNode, snapshot uint64) (int64, error) {
-	rows, _, err := exec.ExecRestrictedStmt(context.Background(), stmt, sqlexec.ExecOptionWithSnapshot(snapshot))
+// RecordData is the record data composed of a handle and values.
+type RecordData struct {
+	Handle kv.Handle
+	Values []types.Datum
+}
+
+func getCount(exec sqlexec.RestrictedSQLExecutor, snapshot uint64, sql string, args ...interface{}) (int64, error) {
+	rows, _, err := exec.ExecRestrictedSQL(context.Background(), []sqlexec.OptionFuncAlias{sqlexec.ExecOptionWithSnapshot(snapshot)}, sql, args...)
 	if err != nil {
 		return 0, errors.Trace(err)
 	}
@@ -322,12 +322,6 @@ func CheckIndicesCount(ctx sessionctx.Context, dbName, tableName string, indices
 	defer func() {
 		ctx.GetSessionVars().OptimizerUseInvisibleIndexes = false
 	}()
-	// Add `` for some names like `table name`.
-	exec := ctx.(sqlexec.RestrictedSQLExecutor)
-	stmt, err := exec.ParseWithParams(context.Background(), true, "SELECT COUNT(*) FROM %n.%n USE INDEX()", dbName, tableName)
-	if err != nil {
-		return 0, 0, errors.Trace(err)
-	}
 
 	var snapshot uint64
 	txn, err := ctx.Txn(false)
@@ -341,16 +335,14 @@ func CheckIndicesCount(ctx sessionctx.Context, dbName, tableName string, indices
 		snapshot = ctx.GetSessionVars().SnapshotTS
 	}
 
-	tblCnt, err := getCount(exec, stmt, snapshot)
+	// Add `` for some names like `table name`.
+	exec := ctx.(sqlexec.RestrictedSQLExecutor)
+	tblCnt, err := getCount(exec, snapshot, "SELECT COUNT(*) FROM %n.%n USE INDEX()", dbName, tableName)
 	if err != nil {
 		return 0, 0, errors.Trace(err)
 	}
 	for i, idx := range indices {
-		stmt, err := exec.ParseWithParams(context.Background(), true, "SELECT COUNT(*) FROM %n.%n USE INDEX(%n)", dbName, tableName, idx)
-		if err != nil {
-			return 0, i, errors.Trace(err)
-		}
-		idxCnt, err := getCount(exec, stmt, snapshot)
+		idxCnt, err := getCount(exec, snapshot, "SELECT COUNT(*) FROM %n.%n USE INDEX(%n)", dbName, tableName, idx)
 		if err != nil {
 			return 0, i, errors.Trace(err)
 		}
@@ -490,7 +482,7 @@ func iterRecords(sessCtx sessionctx.Context, retriever kv.Retriever, t table.Tab
 			return errors.Trace(err)
 		}
 
-		rowMap, err := rowDecoder.DecodeAndEvalRowWithMap(sessCtx, handle, it.Value(), sessCtx.GetSessionVars().Location(), time.UTC, nil)
+		rowMap, err := rowDecoder.DecodeAndEvalRowWithMap(sessCtx, handle, it.Value(), sessCtx.GetSessionVars().Location(), nil)
 		if err != nil {
 			return errors.Trace(err)
 		}

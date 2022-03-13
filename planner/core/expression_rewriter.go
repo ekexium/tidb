@@ -89,6 +89,7 @@ func (b *PlanBuilder) rewriteInsertOnDuplicateUpdate(ctx context.Context, exprNo
 	b.rewriterCounter++
 	defer func() { b.rewriterCounter-- }()
 
+	b.curClause = fieldList
 	rewriter := b.getExpressionRewriter(ctx, mockPlan)
 	// The rewriter maybe is obtained from "b.rewriterPool", "rewriter.err" is
 	// not nil means certain previous procedure has not handled this error.
@@ -1074,7 +1075,7 @@ func (er *expressionRewriter) Leave(originInNode ast.Node) (retNode ast.Node, ok
 		er.ctxStackAppend(value, types.EmptyName)
 	case *driver.ParamMarkerExpr:
 		var value expression.Expression
-		value, er.err = expression.ParamMarkerExpression(er.sctx, v)
+		value, er.err = expression.ParamMarkerExpression(er.sctx, v, false)
 		if er.err != nil {
 			return retNode, false
 		}
@@ -1230,7 +1231,7 @@ func (er *expressionRewriter) newFunction(funcName string, retType *types.FieldT
 }
 
 func (er *expressionRewriter) checkTimePrecision(ft *types.FieldType) error {
-	if ft.EvalType() == types.ETDuration && ft.Decimal > int(types.MaxFsp) {
+	if ft.EvalType() == types.ETDuration && ft.Decimal > types.MaxFsp {
 		return errTooBigPrecision.GenWithStackByArgs(ft.Decimal, "CAST", types.MaxFsp)
 	}
 	return nil
@@ -1743,9 +1744,14 @@ func (er *expressionRewriter) betweenToExpression(v *ast.BetweenExpr) {
 		return
 	}
 
-	expr = expression.BuildCastCollationFunction(er.sctx, expr, coll)
-	lexp = expression.BuildCastCollationFunction(er.sctx, lexp, coll)
-	rexp = expression.BuildCastCollationFunction(er.sctx, rexp, coll)
+	// Handle enum or set. We need to know their real type to decide whether to cast them.
+	lt := expression.GetAccurateCmpType(expr, lexp)
+	rt := expression.GetAccurateCmpType(expr, rexp)
+	enumOrSetRealTypeIsStr := lt != types.ETInt && rt != types.ETInt
+
+	expr = expression.BuildCastCollationFunction(er.sctx, expr, coll, enumOrSetRealTypeIsStr)
+	lexp = expression.BuildCastCollationFunction(er.sctx, lexp, coll, enumOrSetRealTypeIsStr)
+	rexp = expression.BuildCastCollationFunction(er.sctx, rexp, coll, enumOrSetRealTypeIsStr)
 
 	var l, r expression.Expression
 	l, er.err = expression.NewFunction(er.sctx, ast.GE, &v.Type, expr, lexp)
@@ -2008,15 +2014,14 @@ func (er *expressionRewriter) evalDefaultExpr(v *ast.DefaultExpr) {
 	isCurrentTimestamp := hasCurrentDatetimeDefault(col)
 	var val *expression.Constant
 	switch {
-	case isCurrentTimestamp && col.Tp == mysql.TypeDatetime:
-		// for DATETIME column with current_timestamp, use NULL to be compatible with MySQL 5.7
-		val = expression.NewNull()
-	case isCurrentTimestamp && col.Tp == mysql.TypeTimestamp:
-		// for TIMESTAMP column with current_timestamp, use 0 to be compatible with MySQL 5.7
-		zero := types.NewTime(types.ZeroCoreTime, mysql.TypeTimestamp, int8(col.Decimal))
+	case isCurrentTimestamp && (col.Tp == mysql.TypeDatetime || col.Tp == mysql.TypeTimestamp):
+		t, err := expression.GetTimeValue(er.sctx, ast.CurrentTimestamp, col.Tp, col.Decimal)
+		if err != nil {
+			return
+		}
 		val = &expression.Constant{
-			Value:   types.NewDatum(zero),
-			RetType: types.NewFieldType(mysql.TypeTimestamp),
+			Value:   t,
+			RetType: types.NewFieldType(col.Tp),
 		}
 	default:
 		// for other columns, just use what it is
@@ -2038,9 +2043,10 @@ func hasCurrentDatetimeDefault(col *table.Column) bool {
 }
 
 func decodeKeyFromString(ctx sessionctx.Context, s string) string {
+	sc := ctx.GetSessionVars().StmtCtx
 	key, err := hex.DecodeString(s)
 	if err != nil {
-		ctx.GetSessionVars().StmtCtx.AppendWarning(errors.Errorf("invalid record/index key: %X", key))
+		sc.AppendWarning(errors.Errorf("invalid key: %X", key))
 		return s
 	}
 	// Auto decode byte if needed.
@@ -2050,39 +2056,44 @@ func decodeKeyFromString(ctx sessionctx.Context, s string) string {
 	}
 	tableID := tablecodec.DecodeTableID(key)
 	if tableID == 0 {
-		ctx.GetSessionVars().StmtCtx.AppendWarning(errors.Errorf("invalid record/index key: %X", key))
+		sc.AppendWarning(errors.Errorf("invalid key: %X", key))
 		return s
 	}
 	dm := domain.GetDomain(ctx)
 	if dm == nil {
-		ctx.GetSessionVars().StmtCtx.AppendWarning(errors.Errorf("domain not found when decoding record/index key: %X", key))
+		sc.AppendWarning(errors.Errorf("domain not found when decoding key: %X", key))
 		return s
 	}
-	tbl, _ := dm.InfoSchema().TableByID(tableID)
+	is := dm.InfoSchema()
+	if is == nil {
+		sc.AppendWarning(errors.Errorf("infoschema not found when decoding key: %X", key))
+		return s
+	}
+	tbl, _ := is.TableByID(tableID)
 	loc := ctx.GetSessionVars().Location()
 	if tablecodec.IsRecordKey(key) {
 		ret, err := decodeRecordKey(key, tableID, tbl, loc)
 		if err != nil {
-			ctx.GetSessionVars().StmtCtx.AppendWarning(err)
+			sc.AppendWarning(err)
 			return s
 		}
 		return ret
 	} else if tablecodec.IsIndexKey(key) {
 		ret, err := decodeIndexKey(key, tableID, tbl, loc)
 		if err != nil {
-			ctx.GetSessionVars().StmtCtx.AppendWarning(err)
+			sc.AppendWarning(err)
 			return s
 		}
 		return ret
 	} else if tablecodec.IsTableKey(key) {
-		ret, err := decodeTableKey(key, tableID, tbl, loc)
+		ret, err := decodeTableKey(key, tableID)
 		if err != nil {
-			ctx.GetSessionVars().StmtCtx.AppendWarning(err)
+			sc.AppendWarning(err)
 			return s
 		}
 		return ret
 	}
-	ctx.GetSessionVars().StmtCtx.AppendWarning(errors.Errorf("invalid record/index key: %X", key))
+	sc.AppendWarning(errors.Errorf("invalid key: %X", key))
 	return s
 }
 
@@ -2095,7 +2106,7 @@ func decodeRecordKey(key []byte, tableID int64, tbl table.Table, loc *time.Locat
 		ret := make(map[string]interface{})
 		ret["table_id"] = strconv.FormatInt(tableID, 10)
 		// When the clustered index is enabled, we should show the PK name.
-		if tbl.Meta().HasClusteredIndex() {
+		if tbl != nil && tbl.Meta().HasClusteredIndex() {
 			ret[tbl.Meta().GetPkName().String()] = handle.IntValue()
 		} else {
 			ret["_tidb_rowid"] = handle.IntValue()
@@ -2230,7 +2241,7 @@ func decodeIndexKey(key []byte, tableID int64, tbl table.Table, loc *time.Locati
 	return string(retStr), nil
 }
 
-func decodeTableKey(key []byte, tableID int64, tbl table.Table, loc *time.Location) (string, error) {
+func decodeTableKey(key []byte, tableID int64) (string, error) {
 	ret := map[string]int64{"table_id": tableID}
 	retStr, err := json.Marshal(ret)
 	if err != nil {

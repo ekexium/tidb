@@ -446,16 +446,11 @@ func (t *TableCommon) UpdateRecord(ctx context.Context, sctx sessionctx.Context,
 		return err
 	}
 
-
-	if err = injectMutationError(t, txn, sh); err != nil {
-		return err
-	}
 	if sessVars.EnableMutationChecker {
 		if err = CheckDataConsistency(txn, sessVars, t, newData, oldData, memBuffer, sh); err != nil {
 			return errors.Trace(err)
 		}
 	}
-
 	memBuffer.Release(sh)
 	if shouldWriteBinlog(sctx, t.meta) {
 		if !t.meta.PKIsHandle && !t.meta.IsCommonHandle {
@@ -891,9 +886,6 @@ func (t *TableCommon) AddRecord(sctx sessionctx.Context, r []types.Datum, opts .
 		return h, err
 	}
 
-	if err = injectMutationError(t, txn, sh); err != nil {
-		return nil, err
-	}
 	if sessVars.EnableMutationChecker {
 		if err = CheckDataConsistency(txn, sessVars, t, r, nil, memBuffer, sh); err != nil {
 			return nil, errors.Trace(err)
@@ -1154,9 +1146,6 @@ func (t *TableCommon) RemoveRecord(ctx sessionctx.Context, h kv.Handle, r []type
 
 	sessVars := ctx.GetSessionVars()
 	sc := sessVars.StmtCtx
-	if err = injectMutationError(t, txn, sh); err != nil {
-		return err
-	}
 	if sessVars.EnableMutationChecker {
 		if err = CheckDataConsistency(txn, sessVars, t, nil, r, memBuffer, sh); err != nil {
 			return errors.Trace(err)

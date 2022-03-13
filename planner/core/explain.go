@@ -289,9 +289,6 @@ func (p *PhysicalTableScan) OperatorInfo(normalized bool) string {
 	if p.stats.StatsVersion == statistics.PseudoVersion && !normalized {
 		buffer.WriteString(", stats:pseudo")
 	}
-	if p.IsGlobalRead {
-		buffer.WriteString(", global read")
-	}
 	return buffer.String()
 }
 
@@ -431,7 +428,7 @@ func (p *PhysicalIndexReader) ExplainInfo() string {
 
 // ExplainNormalizedInfo implements Plan interface.
 func (p *PhysicalIndexReader) ExplainNormalizedInfo() string {
-	return p.ExplainInfo()
+	return "index:" + p.indexPlan.TP()
 }
 
 func (p *PhysicalIndexReader) accessObject(sctx sessionctx.Context) string {
