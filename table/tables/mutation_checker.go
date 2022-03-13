@@ -416,7 +416,7 @@ func corruptMutations(t *TableCommon, txn kv.Transaction, sh kv.StagingHandle, c
 						return errors.Trace(err)
 					}
 				} else {
-					if err := memBuffer.Set(key, indexMutation.value); err != nil {
+					if err := memBuffer.SetWithFlags(key, indexMutation.value, kv.ToFlagsOps(indexMutation.flags)...); err != nil {
 						return errors.Trace(err)
 					}
 				}
@@ -440,7 +440,7 @@ func corruptMutations(t *TableCommon, txn kv.Transaction, sh kv.StagingHandle, c
 				key := indexMutation.key
 				memBuffer.RemoveFromBuffer(key)
 				key[len(key)-1] += 1
-				if err := memBuffer.Set(key, indexMutation.value); err != nil {
+				if err := memBuffer.SetWithFlags(key, indexMutation.value, kv.ToFlagsOps(indexMutation.flags)...); err != nil {
 					return errors.Trace(err)
 				}
 			}
@@ -459,7 +459,7 @@ func corruptMutations(t *TableCommon, txn kv.Transaction, sh kv.StagingHandle, c
 				if len(value) > 0 {
 					value[len(value)-1] += 1
 				}
-				if err := memBuffer.Set(indexMutation.key, value); err != nil {
+				if err := memBuffer.SetWithFlags(indexMutation.key, value, kv.ToFlagsOps(indexMutation.flags)...); err != nil {
 					return errors.Trace(err)
 				}
 			}
@@ -479,6 +479,9 @@ func corruptMutations(t *TableCommon, txn kv.Transaction, sh kv.StagingHandle, c
 func injectMutationError(t *TableCommon, txn kv.Transaction, sh kv.StagingHandle) error {
 	failpoint.Inject("corruptMutations", func(commands failpoint.Value) {
 		failpoint.Return(corruptMutations(t, txn, sh, commands.(string)))
+	})
+	failpoint.Inject("justError", func(_ failpoint.Value) {
+		failpoint.Return(errors.New("just an error"))
 	})
 	return nil
 }

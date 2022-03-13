@@ -955,3 +955,19 @@ func TestTxnAssertion(t *testing.T) {
 	testUntouchedIndexImpl("OFF", false)
 	testUntouchedIndexImpl("OFF", true)
 }
+
+func TestT4(t *testing.T) {
+	store, clean := testkit.CreateMockStore(t)
+	defer clean()
+	tk := testkit.NewTestKit(t, store)
+	tk.MustExec("use test")
+	tk.MustExec("set @@tidb_enable_mutation_checker = 0")
+	tk.MustExec("CREATE TABLE t0 (c1 INT, c2 INT,  KEY i1 (c1, c2),  KEY i2 (c2, c1))")
+	tk.MustExec("begin optimistic")
+	tk.MustExec("INSERT INTO t0 VALUES (10,10)")
+	tk.MustExec("commit")
+	tk.MustExec("begin optimistic")
+	require.NoError(t, failpoint.Enable("github.com/pingcap/tidb/table/tables/corruptMutations", "1*return(\"extraIndex\")"))
+	tk.MustExec("UPDATE t0 SET c1 = 11 WHERE c2 = 10")
+	tk.MustExec("commit")
+}
