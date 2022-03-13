@@ -102,3 +102,24 @@ func ApplyFlagsOps(origin KeyFlags, ops ...FlagsOp) KeyFlags {
 	}
 	return origin
 }
+
+// ToFlagsOps converts the flags to Op, only used for test to clone a mutation.
+func ToFlagsOps(origin KeyFlags) []FlagsOp {
+	ops := make([]FlagsOp, 0)
+	if origin.HasNeedLocked() {
+		ops = append(ops, SetNeedLocked)
+	}
+	if origin.HasPresumeKeyNotExists() {
+		ops = append(ops, SetPresumeKeyNotExists)
+	}
+	if origin.HasAssertExists() {
+		ops = append(ops, SetAssertExist)
+	}
+	if origin.HasAssertNotExists() {
+		ops = append(ops, SetAssertNotExist)
+	}
+	if origin.HasAssertUnknown() {
+		ops = append(ops, SetAssertUnknown)
+	}
+	return ops
+}
