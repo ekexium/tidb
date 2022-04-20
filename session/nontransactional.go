@@ -107,6 +107,7 @@ func checkConstraint(ctx context.Context, stmt *ast.NonTransactionalDeleteStmt, 
 	if stmt.DeleteStmt.Limit != nil {
 		return errors.New("Non-transactional delete doesn't support limit. Check your SQL or your maxRows config in your client")
 	}
+	return nil
 }
 
 // single-threaded worker. work on the key range [start, end]
