@@ -69,6 +69,9 @@ func HandleNonTransactionalDelete(ctx context.Context, stmt *ast.NonTransactiona
 		return nil, errors.Errorf("non-transactional statement can only run in auto-commit mode. auto-commit:%v, inTxn:%v",
 			se.GetSessionVars().IsAutocommit(), se.GetSessionVars().InTxn())
 	}
+	if err = checkConstraint(ctx, stmt, se); err != nil {
+		return nil, err
+	}
 	tableName, selectSQL, shardColumnInfo, err := buildSelectSQL(stmt, se)
 	if err != nil {
 		return nil, err
@@ -89,6 +92,20 @@ func HandleNonTransactionalDelete(ctx context.Context, stmt *ast.NonTransactiona
 		return buildDryRunResults(stmt.DryRun, splitStmts, se.GetSessionVars().BatchSize.MaxChunkSize)
 	}
 	return buildExecuteResults(jobs, se.GetSessionVars().BatchSize.MaxChunkSize)
+}
+
+func checkConstraint(ctx context.Context, stmt *ast.NonTransactionalDeleteStmt, se Session) error {
+	// TODO: return error if there are multiple tables
+	if stmt.DeleteStmt.TableRefs == nil || stmt.DeleteStmt.TableRefs.TableRefs == nil {
+		return errors.New("table reference is nil")
+	}
+	if stmt.DeleteStmt.TableRefs.TableRefs.Right != nil {
+		return errors.New("Non-transactional delete doesn't support multiple tables")
+	}
+	// no limit
+	if stmt.DeleteStmt.Limit != nil {
+		return errors.New("Non-transactional delete doesn't support limit. Check your SQL or your maxRows config in your client")
+	}
 }
 
 // single-threaded worker. work on the key range [start, end]
@@ -344,13 +361,7 @@ func buildShardJobs(ctx context.Context, stmt *ast.NonTransactionalDeleteStmt, s
 
 func buildSelectSQL(stmt *ast.NonTransactionalDeleteStmt, se Session) (*ast.TableName, string, *model.ColumnInfo, error) {
 	// only use the first table
-	// TODO: return error if there are multiple tables
-	if stmt.DeleteStmt.TableRefs == nil || stmt.DeleteStmt.TableRefs.TableRefs == nil {
-		return nil, "", nil, errors.New("table reference is nil")
-	}
-	if stmt.DeleteStmt.TableRefs.TableRefs.Right != nil {
-		return nil, "", nil, errors.New("Non-transactional delete doesn't support multiple tables")
-	}
+
 	tableSource, ok := stmt.DeleteStmt.TableRefs.TableRefs.Left.(*ast.TableSource)
 	if !ok {
 		return nil, "", nil, errors.New("Non-transactional delete, table source not found")
