@@ -17,6 +17,7 @@ package session
 import (
 	"context"
 	"fmt"
+	"math"
 	"strings"
 
 	"github.com/pingcap/errors"
@@ -287,7 +288,10 @@ func buildShardJobs(ctx context.Context, stmt *ast.NonTransactionalDeleteStmt, s
 		shardColumnCollate = ""
 	}
 
+	originalSelectLimit := se.GetSessionVars().SelectLimit
+	se.GetSessionVars().SelectLimit = math.MaxInt64
 	rss, err := se.Execute(ctx, selectSQL)
+	se.GetSessionVars().SelectLimit = originalSelectLimit
 	if err != nil {
 		return nil, err
 	}
