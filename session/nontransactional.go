@@ -245,7 +245,8 @@ func doOneJob(ctx context.Context, job *job, totalJobCount int, options statemen
 		format.RestoreNameBackQuotes|
 		format.RestoreSpacesAroundBinaryOperation|
 		format.RestoreBracketAroundBinaryOperation|
-		format.RestoreStringWithoutCharset, &sb))
+		format.RestoreStringWithoutCharset|
+		format.RestoreTiDBSpecialComment, &sb))
 	if err != nil {
 		job.err = err
 		return ""
@@ -391,7 +392,8 @@ func buildSelectSQL(stmt *ast.NonTransactionalDeleteStmt, se Session) (*ast.Tabl
 			format.RestoreNameBackQuotes|
 			format.RestoreSpacesAroundBinaryOperation|
 			format.RestoreBracketAroundBinaryOperation|
-			format.RestoreStringWithoutCharset, &sb))
+			format.RestoreStringWithoutCharset|
+			format.RestoreTiDBSpecialComment, &sb))
 		if err != nil {
 			return nil, "", nil, errors.Trace(err)
 		}
