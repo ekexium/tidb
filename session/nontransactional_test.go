@@ -226,3 +226,17 @@ func TestNonTransactionalDeleteInvisibleIndex(t *testing.T) {
 	tk.MustExec("split on a limit 10 delete from t")
 	tk.MustQuery("select count(*) from t").Check(testkit.Rows("0"))
 }
+
+func TestNonTransactionalDeleteOptimizerHints(t *testing.T) {
+	store, clean := createStorage(t)
+	defer clean()
+	tk := testkit.NewTestKit(t, store)
+	tk.MustExec("use test")
+	tk.MustExec("create table t(a int, b int, key(a))")
+	for i := 0; i < 10; i++ {
+		tk.MustExec(fmt.Sprintf("insert into t values ('%d', %d)", i, i*2))
+	}
+	require.Contains(t,
+		tk.MustQuery("split on a limit 10 dry run delete /*+ USE_INDEX(t) */ from t").Rows()[0][0].(string),
+		"DELETE /*+ USE_INDEX(`t` )*/ FROM `test`.`t` WHERE `a` BETWEEN 0 AND 9")
+}
