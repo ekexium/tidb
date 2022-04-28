@@ -420,13 +420,13 @@ func buildSelectSQL(stmt *ast.NonTransactionalDeleteStmt, se Session) (*ast.Tabl
 	}
 
 	// the shard column must be indexed
-	indexed, shardColumnInfo, err := selectShardColumn(stmt, se, tableName, tableSource.AsName)
+	_, shardColumnInfo, err := selectShardColumn(stmt, se, tableName, tableSource.AsName)
 	if err != nil {
 		return nil, "", nil, err
 	}
-	if !indexed {
-		return nil, "", nil, errors.Errorf("Non-transactional delete, shard column %s is not indexed", stmt.ShardColumn.Name.L)
-	}
+	// if !indexed {
+	// 	return nil, "", nil, errors.Errorf("Non-transactional delete, shard column %s is not indexed", stmt.ShardColumn.Name.L)
+	// }
 
 	var sb strings.Builder
 	if stmt.DeleteStmt.Where != nil {
