@@ -303,7 +303,7 @@ func doOneJob(ctx context.Context, job *job, totalJobCount int, options statemen
 		logutil.Logger(ctx).Error(errStr)
 		job.err = err
 	} else {
-		logutil.Logger(ctx).Debug("Non-transactional delete SQL finished successfully", zap.Int("jobID", job.jobID),
+		logutil.Logger(ctx).Info("Non-transactional delete SQL finished successfully", zap.Int("jobID", job.jobID),
 			zap.Int("jobSize", job.jobSize), zap.String("deleteSQL", deleteSQLInLog))
 	}
 	if rs != nil {
