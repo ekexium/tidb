@@ -402,7 +402,7 @@ func TestNonTransactionalDeleteAlias(t *testing.T) {
 	}
 }
 
-func TestRandCase(t *testing.T) {
+func TestGBKUnsupported(t *testing.T) {
 	store, clean := createStorage(t)
 	defer clean()
 	tk1 := testkit.NewTestKit(t, store)
@@ -410,60 +410,77 @@ func TestRandCase(t *testing.T) {
 	tk1.MustExec("use test")
 	tk2.MustExec("create database test2")
 	tk2.MustExec("use test2")
-
-	sqls := []string{
-		"create table tbl_4 ( col_16 mediumint  unsigned not null ,col_17 smallint  unsigned  default 64211 ,col_18 char ( 123 )    default 'GD$cjhoPNTgK~JKPS' ,col_19 double ,col_20 enum ( 'Alice','Bob','Charlie','David' )   not null , primary key  ( col_16 ,col_18 ) /*T![clustered_index] clustered */ ,unique key idx_8 ( col_16 ) ) charset binary collate binary partition by range ( col_16 ) ( partition p0 values less than (6160417), partition p1 values less than (8917959) );",
-		"insert into tbl_4 values ( 10963918,39313,'MgQ&j4m',4121.448936065941,'Charlie' );",
-		"insert into tbl_4 values ( 2542106,8316,'rkyvxvu$*8u_Qp-',378.4350860185114,'Charlie' );",
-		"insert into tbl_4 values ( 9748324,2715,'xDPT)(Zh17JEfc^JKCu',3618.0951920659168,'Charlie' );",
-		"insert into tbl_4 values ( 2284921,54164,'',230.07615760937918,'Bob' );",
-		"insert into tbl_4 values ( 6580621,36141,'lD6bN_',8706.308232918482,'Alice' );",
-		"insert into tbl_4 values ( 9729855,14427,'Gn6y#',7425.408195525086,'David' );",
-		"insert into tbl_4 values ( 16118482,null,')-EVaVQeFSq-JkQa',9292.01575417356,'Bob' );",
-		"insert into tbl_4 values ( 1358316,22266,'z~CgHr%69E7TF-r',4089.2425614144486,'Charlie' );",
-		"insert into tbl_4 values ( 3493677,15129,'Z',6149.869655640478,'Alice' );",
-		"insert into tbl_4 values ( 9290486,65420,'',1692.1349059705556,'Charlie' );",
-		"insert  into tbl_4 set col_16 = 315523, col_17 = 51672, col_18 = 'Ku2fW9L', col_19 = 1595.6559222053074, col_20 = 'Charlie' ;",
-		"insert  into tbl_4 set col_16 = 8701064, col_17 = 34355, col_18 = 'SGa5niLF~moN', col_19 = 1175.033809511273, col_20 = 'David' ;",
-		"insert ignore into tbl_4 (col_16,col_17,col_18,col_19,col_20) values ( 4654879,6280,'q&d&4bjx-p',5628.227081657687,'Alice' ) ,( 4846875,42777,'1DZ3)_s~N-41oJFa',929.0293163693651,'Alice' ) ,( 2772218,415,'3Q6Fc*3hw',6529.194086834193,'David' ) ,( 10370015,59805,'mslzq+(p!j99jj@W',9015.298692773958,'Alice' ) ;",
-		"replace into tbl_4 set col_16 = 10020984, col_17 = 56132, col_18 = 'e#h=0)=NUvjp', col_19 = 6355.371609321243, col_20 = 'Bob';",
-		"split on col_17 limit 1 delete from tbl_4 where col_19 is null;",
-		"replace into tbl_4 set col_16 = 8765620, col_17 = 36409, col_18 = '~', col_19 = 8597.982354249432, col_20 = 'Charlie';",
-		"insert  into tbl_4  values ( 7390599,52596,'c~~*VlB!',1071.2193940041052,'Alice' ) on duplicate key update col_16 = 15443583;",
-		"insert ignore into tbl_4 set col_16 = 7931974, col_17 = 15697, col_18 = 'Qbc(~4+', col_19 = 792.4411324397139, col_20 = 'Bob' on duplicate key update col_18 = '@#3I1X=!F+t_X6AJ~hR', col_17 = 35074;",
-		"insert ignore into tbl_4 set col_16 = 908725, col_17 = null, col_18 = 'OC#0aAEaU0V', col_19 = 7212.916743741324, col_20 = 'David' on duplicate key update col_18 = 'OTkY)d9l_utrmY#D', col_16 = 13024365;",
-		"split on col_19 limit 4 delete from tbl_4 where tbl_4.col_18 in ( '1k' ,'gYmo-_Sy98w7G' ,'GzPcMDZ^' ,'qwa' ,'M)FdI$w*d6' ,'fd#VNwV' ,'*' );",
-		"insert  into tbl_4 (col_16,col_17,col_18,col_19,col_20) values ( 7634525,14080,'H8V',8664.2705284215,'Charlie' ) ,( 5017296,14107,'Q',2937.3975265466943,'Alice' ) on duplicate key update col_18 = '+H+UyW_68X#L6ERx', col_20 = 'Bob';",
-		"split on col_17 limit 1 delete from tbl_4 where tbl_4.col_16 in ( 1330665 ,10467506 ,3493677 );",
-		"insert  into tbl_4  values ( 7270895,2229,'AO5',8982.559830507913,'David' ) ,( 7735986,18028,'Q!!VPh&d',7746.198740161912,'Alice' ) ,( 2405809,36476,'Pm9ye~z-~ZenvnOoLO',6419.267797355345,'Bob' ) ,( 638372,25532,'N=6hJ',4634.936217424711,'Bob' ) ;",
-		"insert ignore into tbl_4 (col_16,col_17,col_18,col_19,col_20) values ( 14295345,48013,'*6eaK4iY+',4429.776730282555,'Charlie' ) ,( 14298833,53744,'loI4bna7O^SjMKp&',4985.616251613528,'Bob' ) ,( 11354002,47330,'=p14!8t0#LlZX19p',8998.474552705939,'Charlie' ) ,( 12380050,1092,'zYZv)9o',6685.545645403333,'Bob' ) ,( 7694778,18844,'K3G)&0HHuD*8',null,'Alice' ) ;",
-		"split on col_18 limit 4 delete from tbl_4 where col_18 is null;",
-		"replace into tbl_4 set col_16 = 12513996, col_17 = 48564, col_18 = '', col_19 = 5651.935737268817, col_20 = 'Charlie';",
-		"insert ignore into tbl_4 set col_16 = 7867243, col_17 = 41871, col_18 = 'G58eDF', col_19 = 9289.61376043116, col_20 = 'Bob' ;",
-		"split on col_17 limit 4 delete from tbl_4 where tbl_4.col_18 in ( 'f%K^UCnItX~rNH&f8Y' ,'cu' );",
-		// "insert  into tbl_4  values ( 3849184,29141,'vzvK%g',2983.788811040152,'Charlie' ) ,( 9266404,27566,'!d',null,'David' ) ,( 10450869,59825,'u)4axeMT24',4239.101374450549,'Bob' ) ,( 6485440,63545,'7a*7KdQ_+r_ngfo76Y',null,'Alice' ) ,( 605027,10000,'%*V',3087.8779060070087,'David' ) ,( 1570759,44827,'',4986.4238824037775,'Alice' ) ,( 4906838,32263,'^i*HMJ_xW',4885.209942652734,'David' ) on duplicate key update col_18 = '3KVOnF', col_19 = 982.6104992047269, col_16 = 179598, col_17 = null;",
-		// "insert ignore into tbl_4 set col_16 = 9867825, col_17 = 42659, col_18 = 'jKCNXzZIQK0@SVR=8NB', col_19 = 8112.080898800254, col_20 = 'Bob' on duplicate key update col_16 = 10438899;",
-		// "insert  into tbl_4  values ( 3368437,45589,'v)l2mvHhSTxoxp',1929.443445231295,'Alice' ) ,( 6119577,20122,'!',2915.3393297060334,'Alice' ) ,( 14614361,65046,'efA+OCSA$KL467',5271.579233848835,'Charlie' ) ,( 10530017,62336,'_n',4507.082864632823,'Alice' ) ,( 10464981,60651,'+B*&D*qWyeO',8529.217166391498,'Bob' ) on duplicate key update col_19 = 766.778343099527, col_20 = 'Alice', col_16 = 5739682, col_18 = 'Ty%u97LFmzl$gOqc', col_17 = 16434;",
-		// "replace into tbl_4 set col_16 = 9323032, col_17 = 14664, col_18 = 'g', col_19 = 2754.0345921443327, col_20 = 'Bob';",
-		// "replace into tbl_4  values ( 3970334,52714,'',209.63075245822054,'Bob' ) ,( 3317226,3502,'+9SFhYxcnnMpF^',1119.2533267635063,'Charlie' ) ,( 12420341,46526,'&=sO+CJc45hqG*n*_v',4265.841895760079,'Charlie' ) ,( 13356460,28654,'c',2124.185561421236,'Charlie' ) ,( 1804537,18317,'mh$b1Akb_Pyr@2teI',6492.054297443444,'Bob' ) ,( 9023887,22888,'9',3770.5542822946827,'Bob' ) ,( 4049515,19818,'W-DS~2S+-i$+2)Eo!V',5863.740372758795,'Charlie' );",
-		// "SELECT * FROM tbl_4 ORDER BY col_16, col_17, col_18, col_19, col_20;",
+	tk1.MustQuery("SELECT VARIABLE_VALUE FROM mysql.tidb WHERE VARIABLE_NAME='new_collation_enabled';").Check(testkit.Rows("True"))
+	initSqls := []string{
+		"create table tbl_3 ( col_11 text ( 74 ) collate utf8_bin ,col_12 enum ( 'Alice','Bob','Charlie','David' )   not null default 'Alice' ,col_13 text ( 65 ) collate gbk_bin ,col_14 varchar ( 300 ) collate utf8_unicode_ci  not null ,col_15 bit ( 20 )   not null , unique key idx_5 ( col_13 ( 3 ) ) ,key idx_6 ( col_11 ( 5 ) ), key(col_11(70)) ) charset binary collate binary ;",
+		"insert into tbl_3  values ( 'zxLGrU0f-FQ','Bob','Iw噒M蕊+匡蝐%!EB朞齫','',484653 ) ,( 'Ac-Ireq=iHjcW','Bob','釂un轕0桓槄3踇N骦','dh$IkI',717480 ) ,( 'EUUZ%wrqVGK','Charlie',null,'M&Cj25j',1020133 ) ,( 'lala','David','xc籰熟襏I幼昶l~=T','m%XseKI582kqZiHD',870843 ) ,( 'K%@U1','Charlie','L鳩ekKrgl簝*幔豶S','3%vKr*rA!9Oni0Wpk',99665 );",
 	}
-	query := "SELECT * FROM tbl_4 ORDER BY col_16, col_17, col_18, col_19, col_20;"
+	sqls := []string{
+		"split on col_11 limit 2 delete from tbl_3 where not( tbl_3.col_11 in ( select col_11 from tbl_3 where not( tbl_3.col_11 in ( select col_13 from tbl_3 where not( tbl_3.col_11 in ( select col_11 from tbl_3 where tbl_3.col_11 = '' ) ) ) ) ) );",
+		// "DELETE FROM `tbl_3` WHERE (`col_11` BETWEEN 'Ac-Ireq=iHjcW' AND 'Ac-Ireq=iHjcW' AND NOT (`tbl_3`.`col_11` IN (SELECT `col_11` FROM `tbl_3` WHERE NOT (`tbl_3`.`col_11` IN (SELECT `col_13` FROM `tbl_3` WHERE NOT (`tbl_3`.`col_11` IN (SELECT `col_11` FROM `tbl_3` WHERE (`tbl_3`.`col_11` = ''))))))))",
+		// "DELETE FROM `tbl_3` WHERE (`col_11` BETWEEN 'EUUZ%wrqVGK' AND 'EUUZ%wrqVGK' AND NOT (`tbl_3`.`col_11` IN (SELECT `col_11` FROM `tbl_3` WHERE NOT (`tbl_3`.`col_11` IN (SELECT `col_13` FROM `tbl_3` WHERE NOT (`tbl_3`.`col_11` IN (SELECT `col_11` FROM `tbl_3` WHERE (`tbl_3`.`col_11` = ''))))))))",
+		// "DELETE FROM `tbl_3` WHERE (`col_11` BETWEEN 'K%@U1' AND 'K%@U1' AND NOT (`tbl_3`.`col_11` IN (SELECT `col_11` FROM `tbl_3` WHERE NOT (`tbl_3`.`col_11` IN (SELECT `col_13` FROM `tbl_3` WHERE NOT (`tbl_3`.`col_11` IN (SELECT `col_11` FROM `tbl_3` WHERE (`tbl_3`.`col_11` = ''))))))))",
+		// "DELETE FROM `tbl_3` WHERE (`col_11` BETWEEN 'lala' AND 'lala' AND NOT (`tbl_3`.`col_11` IN (SELECT `col_11` FROM `tbl_3` WHERE NOT (`tbl_3`.`col_11` IN (SELECT `col_13` FROM `tbl_3` WHERE NOT (`tbl_3`.`col_11` IN (SELECT `col_11` FROM `tbl_3` WHERE (`tbl_3`.`col_11` = ''))))))))",
+		// "DELETE FROM `tbl_3` WHERE (`col_11` BETWEEN 'zxLGrU0f-FQ' AND 'zxLGrU0f-FQ' AND NOT (`tbl_3`.`col_11` IN (SELECT `col_11` FROM `tbl_3` WHERE NOT (`tbl_3`.`col_11` IN (SELECT `col_13` FROM `tbl_3` WHERE NOT (`tbl_3`.`col_11` IN (SELECT `col_11` FROM `tbl_3` WHERE (`tbl_3`.`col_11` = ''))))))))",
+	}
+
+	// query := "SELECT * FROM tbl_3 ORDER BY col_11, col_12, col_13, col_14, col_15;"
+	query := "SELECT count(*) FROM tbl_3"
+
+	for _, sql := range initSqls {
+		tk1.MustExec(sql)
+		tk2.MustExec(sql)
+	}
 	for _, sql := range sqls {
 		tk1.Exec(sql)
 		if strings.HasPrefix(sql, "split") {
 			sql = sql[strings.Index(sql, "delete"):]
-			println(sql)
 		}
 		tk2.Exec(sql)
-		// tk1.MustQuery(query).Check(tk2.MustQuery(query).Rows())
+		println(sql)
+		tk1.MustQuery(query).Check(tk2.MustQuery(query).Rows())
 	}
-	rows := tk1.MustQuery(query).Rows()
+	rows := tk1.MustQuery("SELECT * FROM tbl_3").Rows()
 	for _, row := range rows {
 		for _, col := range row {
 			print(col.(string), " ")
 		}
 		println()
 	}
-	println(tk1.MustQuery("select count(*) from tbl_4").Rows()[0][0].(string), tk2.MustQuery("select count(*) from tbl_4").Rows()[0][0].(string))
+	tk1.MustQuery("select count(*) from tbl_3").Check(tk2.MustQuery("select count(*) from tbl_3").Rows())
+	println(tk1.MustQuery("select count(*) from tbl_3").Rows()[0][0].(string))
+}
+
+func TestBug(t *testing.T) {
+	store, clean := createStorage(t)
+	defer clean()
+	tk := testkit.NewTestKit(t, store)
+	tk.MustExec("use test")
+
+	// insert 5 rows.
+	initSqls := []string{
+		"create table tbl_3 ( col_11 text ( 74 ) collate utf8_bin ,col_12 enum ( 'Alice','Bob','Charlie','David' )   not null default 'Alice' ,col_13 text ( 65 ) collate gbk_bin ,col_14 varchar ( 300 ) collate utf8_unicode_ci  not null ,col_15 bit ( 20 )   not null , unique key idx_5 ( col_13 ( 3 ) ) ,key idx_6 ( col_11 ( 5 ) ), key(col_11(70)) ) charset binary collate binary ;",
+		"insert into tbl_3  values ( 'zxLGrU0f-FQ','Bob','Iw噒M蕊+匡蝐%!EB朞齫','',484653 ) ,( 'Ac-Ireq=iHjcW','Bob','釂un轕0桓槄3踇N骦','dh$IkI',717480 ) ,( 'EUUZ%wrqVGK','Charlie',null,'M&Cj25j',1020133 ) ,( 'lala','David','xc籰熟襏I幼昶l~=T','m%XseKI582kqZiHD',870843 ) ,( 'K%@U1','Charlie','L鳩ekKrgl簝*幔豶S','3%vKr*rA!9Oni0Wpk',99665 );",
+	}
+
+	delete0 := "DELETE FROM `tbl_3` WHERE (`col_11` BETWEEN 'EUUZ%wrqVGK' AND 'EUUZ%wrqVGK' AND NOT (`tbl_3`.`col_11` IN (SELECT `col_11` FROM `tbl_3` WHERE NOT (`tbl_3`.`col_11` IN (SELECT `col_13` FROM `tbl_3` WHERE NOT (`tbl_3`.`col_11` IN (SELECT `col_11` FROM `tbl_3` WHERE (`tbl_3`.`col_11` = ''))))))))"
+	delete1 := "DELETE FROM `tbl_3` WHERE (`col_11` BETWEEN 'K%@U1' AND 'K%@U1' AND NOT (`tbl_3`.`col_11` IN (SELECT `col_11` FROM `tbl_3` WHERE NOT (`tbl_3`.`col_11` IN (SELECT `col_13` FROM `tbl_3` WHERE NOT (`tbl_3`.`col_11` IN (SELECT `col_11` FROM `tbl_3` WHERE (`tbl_3`.`col_11` = ''))))))))"
+
+	tk.MustExec(initSqls[0])
+	tk.MustExec(initSqls[1])
+	// The statement can delete a row.
+	tk.MustExec(delete1)
+	tk.MustQuery("select count(*) from tbl_3").Check(testkit.Rows("4"))
+
+	tk2 := testkit.NewTestKit(t, store)
+	tk2.MustExec("create database test2")
+	tk2.MustExec("use test2")
+	tk2.MustExec(initSqls[0])
+	tk2.MustExec(initSqls[1])
+
+	tk2.MustExec(delete0)
+	tk2.MustQuery("select count(*) from tbl_3").Check(testkit.Rows("4"))
+
+	tk2.MustExec(delete1)
+	tk2.MustQuery("select count(*) from tbl_3").Check(testkit.Rows("3"))
 }
