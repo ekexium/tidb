@@ -316,7 +316,7 @@ func buildShardJobs(ctx context.Context, stmt *ast.NonTransactionalDeleteStmt, s
 	selectSQL string, shardColumnInfo *model.ColumnInfo, memTracker *memory.Tracker) ([]job, error) {
 	var shardColumnCollate string
 	if shardColumnInfo != nil {
-		shardColumnCollate = shardColumnInfo.Collate
+		shardColumnCollate = shardColumnInfo.GetCollate()
 	} else {
 		shardColumnCollate = ""
 	}
@@ -504,7 +504,7 @@ func selectShardColumn(stmt *ast.NonTransactionalDeleteStmt, se Session, tableNa
 		return false, nil, errors.Errorf("shard column %s not found", shardColumnName)
 	}
 	// is int handle
-	if mysql.HasPriKeyFlag(shardColumnInfo.Flag) && tableInfo.PKIsHandle {
+	if mysql.HasPriKeyFlag(shardColumnInfo.GetFlag()) && tableInfo.PKIsHandle {
 		return true, shardColumnInfo, nil
 	}
 
