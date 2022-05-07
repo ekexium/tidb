@@ -421,67 +421,6 @@ func TestNonTransactionalDeleteShardOnUnsupportedTypes(t *testing.T) {
 	tk.MustQuery("select count(*) from t2").Check(testkit.Rows("1"))
 }
 
-func TestNonTransactionalDeleteMultiTables(t *testing.T) {
-	store, clean := createStorage(t)
-	defer clean()
-	tk := testkit.NewTestKit(t, store)
-
-	tk.Exec("use test")
-	tk.Exec("create table t(a int, b int, key(a))")
-	for i := 0; i < 100; i++ {
-		tk.Exec(fmt.Sprintf("insert into t values (%d, %d)", i, i*2))
-	}
-
-	tk.Exec("create table t1(a int, b int, key(a))")
-	tk.Exec("insert into t1 values (1, 1)")
-	err := tk.ExecToErr("split limit 1 delete t, t1 from t, t1 where t.a = t1.a")
-	require.Error(t, err)
-	tk.MustQuery("select count(*) from t").Check(testkit.Rows("100"))
-	tk.MustQuery("select count(*) from t1").Check(testkit.Rows("1"))
-}
-
-func TestNonTransactionalDeleteAlias(t *testing.T) {
-	store, clean := createStorage(t)
-	defer clean()
-	tk := testkit.NewTestKit(t, store)
-
-	goodSplitStmts := []string{
-		"split on test.t1.a limit 5 delete t1.* from test.t as t1",
-		"split on a limit 5 delete t1.* from test.t as t1",
-		"split on _tidb_rowid limit 5 delete from test.t as t1",
-		"split on t1._tidb_rowid limit 5 delete from test.t as t1",
-		"split on test.t1._tidb_rowid limit 5 delete from test.t as t1",
-		"split limit 5 delete from test.t as t1", // auto assigns table name to be the alias
-	}
-
-	badSplitStmts := []string{
-		"split on test.t.a limit 5 delete t1.* from test.t as t1",
-		"split on t.a limit 5 delete t1.* from test.t as t1",
-		"split on t._tidb_rowid limit 5 delete from test.t as t1",
-		"split on test.t._tidb_rowid limit 5 delete from test.t as t1",
-	}
-
-	tk.Exec("create table test.t(a int, b int, key(a))")
-	tk.Exec("create table test.t2(a int, b int, key(a))")
-
-	for _, sql := range goodSplitStmts {
-		for i := 0; i < 5; i++ {
-			tk.Exec(fmt.Sprintf("insert into test.t values (%d, %d)", i, i*2))
-		}
-		tk.Exec(sql)
-		tk.MustQuery("select count(*) from test.t").Check(testkit.Rows("0"))
-	}
-
-	for i := 0; i < 5; i++ {
-		tk.Exec(fmt.Sprintf("insert into test.t values (%d, %d)", i, i*2))
-	}
-	for _, sql := range badSplitStmts {
-		err := tk.ExecToErr(sql)
-		require.Error(t, err)
-		tk.MustQuery("select count(*) from test.t").Check(testkit.Rows("5"))
-	}
-}
-
 func TestGBKUnsupported(t *testing.T) {
 	store, clean := createStorage(t)
 	defer clean()
@@ -565,7 +504,7 @@ func TestBug(t *testing.T) {
 	tk2.MustQuery("select count(*) from tbl_3").Check(testkit.Rows("3"))
 }
 
-func TestAnother(t *testing.T) {
+func TestDataTooLong(t *testing.T) {
 	store, clean := createStorage(t)
 	defer clean()
 	tk1 := testkit.NewTestKit(t, store)
@@ -575,12 +514,13 @@ func TestAnother(t *testing.T) {
 	tk2.MustExec("use test2")
 	tk1.MustQuery("SELECT VARIABLE_VALUE FROM mysql.tidb WHERE VARIABLE_NAME='new_collation_enabled';").Check(testkit.Rows("True"))
 	initSqls := []string{
-		"create table tbl_5 ( col_21 bit ( 60 )   not null default 683925682683277923 ,col_22 text ( 499 )   not null ,col_23 blob ( 10 )   not null ,col_24 bit ( 23 )   not null ,col_25 enum ( 'Alice','Bob','Charlie','David' ) , unique key idx_9 ( col_24 ,col_21 ,col_22 ( 5 ) ) ,unique key idx_10 ( col_23 ( 3 ) ) ) charset binary collate binary ;",
+		"create table tbl_5 ( col_21 bit ( 60 )   not null default 6839 ,col_22 text ( 499 )   not null ,col_23 blob ( 10 )   not null ,col_24 bit ( 23 )   not null ,col_25 enum ( 'Alice','Bob','Charlie','David' ) , unique key idx_9 ( col_24 ,col_21 ,col_22 ( 5 ) ) ,unique key idx_10 ( col_23 ( 3 ) ) ) charset binary collate binary ;",
 	}
 	sqls := []string{
 		"insert into tbl_5 values ( 195655191915635751,'O$aAa%%C+)#k0_zcYJ','',3025746,'Bob' );",
 		"create table tbl_8 ( col_36 decimal ( 41 , 13 ) ,col_37 year   not null ,col_38 varbinary ( 86 )    default 'W3m@' ,col_39 set ( 'Alice','Bob','Charlie','David' )   not null default 'Alice' ,col_40 bit ( 11 )   not null default 1546 , primary key  ( col_40 ,col_37 ) /*T![clustered_index] clustered */ ,unique key idx_16 ( col_36 ,col_40 ,col_39 ) ) charset binary collate binary ;",
 		"split on col_23 limit 1000 delete from tbl_5 where not( tbl_5.col_21 in ( select col_40 from tbl_8 where not( tbl_5.col_21 between 1033085249881905107 and 493477033195417129 ) ) );",
+		// "delete from tbl_5 where not( tbl_5.col_21 in ( select col_40 from tbl_8 where not( tbl_5.col_21 between 1033085249881905107 and 493477033195417129 ) ) );",
 	}
 
 	// query := "SELECT * FROM tbl_3 ORDER BY col_11, col_12, col_13, col_14, col_15;"
