@@ -346,6 +346,86 @@ func TestNonTransactionalDeleteMultiTables(t *testing.T) {
 	defer clean()
 	tk := testkit.NewTestKit(t, store)
 
+	tk.MustExec("use test")
+	tk.MustExec("create table t(a int, b int, key(a))")
+	for i := 0; i < 100; i++ {
+		tk.MustExec(fmt.Sprintf("insert into t values (%d, %d)", i, i*2))
+	}
+
+	tk.MustExec("create table t1(a int, b int, key(a))")
+	tk.MustExec("insert into t1 values (1, 1)")
+	err := tk.ExecToErr("split limit 1 delete t, t1 from t, t1 where t.a = t1.a")
+	require.Error(t, err)
+	tk.MustQuery("select count(*) from t").Check(testkit.Rows("100"))
+	tk.MustQuery("select count(*) from t1").Check(testkit.Rows("1"))
+}
+
+func TestNonTransactionalDeleteAlias(t *testing.T) {
+	store, clean := createStorage(t)
+	defer clean()
+	tk := testkit.NewTestKit(t, store)
+
+	goodSplitStmts := []string{
+		"split on test.t1.a limit 5 delete t1.* from test.t as t1",
+		"split on a limit 5 delete t1.* from test.t as t1",
+		"split on _tidb_rowid limit 5 delete from test.t as t1",
+		"split on t1._tidb_rowid limit 5 delete from test.t as t1",
+		"split on test.t1._tidb_rowid limit 5 delete from test.t as t1",
+		"split limit 5 delete from test.t as t1", // auto assigns table name to be the alias
+	}
+
+	badSplitStmts := []string{
+		"split on test.t.a limit 5 delete t1.* from test.t as t1",
+		"split on t.a limit 5 delete t1.* from test.t as t1",
+		"split on t._tidb_rowid limit 5 delete from test.t as t1",
+		"split on test.t._tidb_rowid limit 5 delete from test.t as t1",
+	}
+
+	tk.MustExec("create table test.t(a int, b int, key(a))")
+	tk.MustExec("create table test.t2(a int, b int, key(a))")
+
+	for _, sql := range goodSplitStmts {
+		for i := 0; i < 5; i++ {
+			tk.MustExec(fmt.Sprintf("insert into test.t values (%d, %d)", i, i*2))
+		}
+		tk.MustExec(sql)
+		tk.MustQuery("select count(*) from test.t").Check(testkit.Rows("0"))
+	}
+
+	for i := 0; i < 5; i++ {
+		tk.MustExec(fmt.Sprintf("insert into test.t values (%d, %d)", i, i*2))
+	}
+	for _, sql := range badSplitStmts {
+		err := tk.ExecToErr(sql)
+		require.Error(t, err)
+		tk.MustQuery("select count(*) from test.t").Check(testkit.Rows("5"))
+	}
+}
+
+func TestNonTransactionalDeleteShardOnUnsupportedTypes(t *testing.T) {
+	// When some day the test fail because such types are supported, we can update related docs and consider remove the test.
+	store, clean := createStorage(t)
+	defer clean()
+	tk := testkit.NewTestKit(t, store)
+	tk.MustExec("use test")
+	tk.MustExec("create table t(a set('e0', 'e1', 'e2'), b int, key(a))")
+	tk.MustExec("insert into t values ('e2,e0', 3)")
+	err := tk.ExecToErr("split on a limit 1 delete from t")
+	require.Error(t, err)
+	tk.MustQuery("select count(*) from t").Check(testkit.Rows("1"))
+
+	tk.MustExec("create table t2(a enum('e0', 'e1', 'e2'), b int, key(a))")
+	tk.MustExec("insert into t2 values ('e0', 1)")
+	err = tk.ExecToErr("split on a limit 1 delete from t2")
+	require.Error(t, err)
+	tk.MustQuery("select count(*) from t2").Check(testkit.Rows("1"))
+}
+
+func TestNonTransactionalDeleteMultiTables(t *testing.T) {
+	store, clean := createStorage(t)
+	defer clean()
+	tk := testkit.NewTestKit(t, store)
+
 	tk.Exec("use test")
 	tk.Exec("create table t(a int, b int, key(a))")
 	for i := 0; i < 100; i++ {

@@ -197,7 +197,7 @@ func splitDeleteWorker(ctx context.Context, jobs []job, stmt *ast.NonTransaction
 
 		// if the first job failed, there is a large chance that all jobs will fail. So return early.
 		if i == 0 && jobs[i].err != nil {
-			return nil, errors.Wrap(jobs[i].err, "Early return: error occurred in the first job. All jobs are canceled")
+			return nil, errors.Annotate(jobs[i].err, "Early return: error occurred in the first job. All jobs are canceled")
 		}
 	}
 	return splitStmts, nil
@@ -271,7 +271,7 @@ func doOneJob(ctx context.Context, job *job, totalJobCount int, options statemen
 		format.RestoreBracketAroundBinaryOperation|
 		format.RestoreStringWithoutCharset, &sb))
 	if err != nil {
-		job.err = err
+		job.err = errors.Annotate(err, "Failed to restore delete statement")
 		return ""
 	}
 	deleteSQL := sb.String()
@@ -298,9 +298,7 @@ func doOneJob(ctx context.Context, job *job, totalJobCount int, options statemen
 		err = errors.New("injected split delete error")
 	})
 	if err != nil {
-		errStr := fmt.Sprintf("Non-transactional delete SQL failed, sql: %s, error: %s, jobID: %d, jobSize: %d. ",
-			deleteSQLInLog, err.Error(), job.jobID, job.jobSize)
-		logutil.Logger(ctx).Error(errStr)
+		logutil.Logger(ctx).Error("Non-transactional delete SQL failed", zap.String("job", deleteSQLInLog), zap.Error(err), zap.Int("jobID", job.jobID), zap.Int("jobSize", job.jobSize))
 		job.err = err
 	} else {
 		logutil.Logger(ctx).Info("Non-transactional delete SQL finished successfully", zap.Int("jobID", job.jobID),
@@ -436,7 +434,7 @@ func buildSelectSQL(stmt *ast.NonTransactionalDeleteStmt, se Session) (*ast.Tabl
 			format.RestoreBracketAroundBinaryOperation|
 			format.RestoreStringWithoutCharset, &sb))
 		if err != nil {
-			return nil, "", nil, errors.Trace(err)
+			return nil, "", nil, errors.Annotate(err, "Failed to restore where clause in non-transactional delete")
 		}
 	} else {
 		sb.WriteString("TRUE")
