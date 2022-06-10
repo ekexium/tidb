@@ -176,6 +176,8 @@ func (e *DeleteExec) composeTblRowMap(tblRowMap tableRowMapType, colPosInfos []p
 		if !exist {
 			memDelta += types.EstimatedMemUsage(joinedRow, 1)
 			memDelta += int64(handle.ExtraMemSize())
+		} else {
+			panic("duplicate handle!!")
 		}
 		e.memTracker.Consume(memDelta)
 	}
