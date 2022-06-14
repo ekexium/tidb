@@ -266,12 +266,17 @@ func (e *PointGetExecutor) Next(ctx context.Context, req *chunk.Chunk) error {
 					return err
 				}
 				// Change the unique index LOCK into PUT record.
-				if e.lock && len(e.handleVal) > 0 {
+				// If the row does not exist. We put a delete record.
+				if e.lock {
 					if !e.txn.Valid() {
 						return kv.ErrInvalidTxn
 					}
 					memBuffer := e.txn.GetMemBuffer()
-					err = memBuffer.Set(e.idxKey, e.handleVal)
+					if e.handleVal == nil {
+						err = memBuffer.Delete(e.idxKey)
+					} else {
+						err = memBuffer.Set(e.idxKey, e.handleVal)
+					}
 					if err != nil {
 						return err
 					}
