@@ -301,9 +301,6 @@ func (store *MVCCStore) pessimisticLockInner(reqCtx *requestCtx, req *kvrpcpb.Pe
 			if err1 != nil {
 				return nil, err1
 			}
-			if lock == nil {
-				continue
-			}
 			batch.PessimisticLock(m.Key, lock)
 		}
 		err = store.dbWriter.Write(batch)
