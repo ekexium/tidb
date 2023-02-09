@@ -429,6 +429,11 @@ func (a *ExecStmt) Exec(ctx context.Context) (_ sqlexec.RecordSet, err error) {
 		if r == nil {
 			if a.retryCount > 0 {
 				metrics.StatementPessimisticRetryCount.Observe(float64(a.retryCount))
+				logutil.Logger(ctx).Warn("statement pessimistic retry count",
+					zap.Uint64("connection id", a.Ctx.GetSessionVars().ConnectionID),
+					zap.Uint("retry count", a.retryCount),
+					zap.Time("retry time", time.Now()),
+				)
 			}
 			lockKeysCnt := a.Ctx.GetSessionVars().StmtCtx.LockKeysCount
 			if lockKeysCnt > 0 {
