@@ -25,7 +25,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/opentracing/opentracing-go"
 	"github.com/pingcap/errors"
 	"github.com/pingcap/failpoint"
 	"github.com/pingcap/log"
@@ -62,9 +61,11 @@ import (
 	"github.com/pingcap/tidb/util/replayer"
 	"github.com/pingcap/tidb/util/sqlexec"
 	"github.com/pingcap/tidb/util/stmtsummary"
+	stmtsummaryv2 "github.com/pingcap/tidb/util/stmtsummary/v2"
 	"github.com/pingcap/tidb/util/stringutil"
 	"github.com/pingcap/tidb/util/topsql"
 	topsqlstate "github.com/pingcap/tidb/util/topsql/state"
+	"github.com/pingcap/tidb/util/tracing"
 	"github.com/prometheus/client_golang/prometheus"
 	tikverr "github.com/tikv/client-go/v2/error"
 	"github.com/tikv/client-go/v2/oracle"
@@ -207,6 +208,7 @@ type TelemetryInfo struct {
 	PartitionTelemetry    *PartitionTelemetryInfo
 	AccountLockTelemetry  *AccountLockTelemetryInfo
 	UseIndexMerge         bool
+	UseTableLookUp        bool
 }
 
 // PartitionTelemetryInfo records table partition telemetry information during execution.
@@ -283,12 +285,12 @@ func (a *ExecStmt) GetStmtNode() ast.StmtNode {
 
 // PointGet short path for point exec directly from plan, keep only necessary steps
 func (a *ExecStmt) PointGet(ctx context.Context) (*recordSet, error) {
-	if span := opentracing.SpanFromContext(ctx); span != nil && span.Tracer() != nil {
-		span1 := span.Tracer().StartSpan("ExecStmt.PointGet", opentracing.ChildOf(span.Context()))
-		span1.LogKV("sql", a.OriginText())
-		defer span1.Finish()
-		ctx = opentracing.ContextWithSpan(ctx, span1)
+	r, ctx := tracing.StartRegionEx(ctx, "ExecStmt.PointGet")
+	defer r.End()
+	if r.Span != nil {
+		r.Span.LogKV("sql", a.OriginText())
 	}
+
 	failpoint.Inject("assertTxnManagerInShortPointGetPlan", func() {
 		sessiontxn.RecordAssert(a.Ctx, "assertTxnManagerInShortPointGetPlan", true)
 		// stale read should not reach here
@@ -921,11 +923,8 @@ func (a *ExecStmt) runPessimisticSelectForUpdate(ctx context.Context, e Executor
 
 func (a *ExecStmt) handleNoDelayExecutor(ctx context.Context, e Executor) (sqlexec.RecordSet, error) {
 	sctx := a.Ctx
-	if span := opentracing.SpanFromContext(ctx); span != nil && span.Tracer() != nil {
-		span1 := span.Tracer().StartSpan("executor.handleNoDelayExecutor", opentracing.ChildOf(span.Context()))
-		defer span1.Finish()
-		ctx = opentracing.ContextWithSpan(ctx, span1)
-	}
+	r, ctx := tracing.StartRegionEx(ctx, "executor.handleNoDelayExecutor")
+	defer r.End()
 
 	var err error
 	defer func() {
@@ -1412,17 +1411,7 @@ func (a *ExecStmt) observePhaseDurations(internal bool, commitDetails *util.Comm
 // 4. update the `PrevStmt` in session variable.
 // 5. reset `DurationParse` in session variable.
 func (a *ExecStmt) FinishExecuteStmt(txnTS uint64, err error, hasMoreResults bool) {
-	se := a.Ctx
-	if !se.GetSessionVars().InRestrictedSQL && se.GetSessionVars().IsPlanReplayerCaptureEnabled() {
-		stmtNode := a.GetStmtNode()
-		if se.GetSessionVars().EnablePlanReplayedContinuesCapture {
-			if checkPlanReplayerContinuesCaptureValidStmt(stmtNode) {
-				checkPlanReplayerContinuesCapture(se, stmtNode, txnTS)
-			}
-		} else {
-			checkPlanReplayerCaptureTask(se, stmtNode, txnTS)
-		}
-	}
+	a.checkPlanReplayerCapture(txnTS)
 
 	sessVars := a.Ctx.GetSessionVars()
 	execDetail := sessVars.StmtCtx.GetExecDetails()
@@ -1482,6 +1471,23 @@ func (a *ExecStmt) FinishExecuteStmt(txnTS uint64, err error, hasMoreResults boo
 
 	if sessVars.StmtCtx.ReadFromTableCache {
 		metrics.ReadFromTableCacheCounter.Inc()
+	}
+}
+
+func (a *ExecStmt) checkPlanReplayerCapture(txnTS uint64) {
+	if kv.GetInternalSourceType(a.GoCtx) == kv.InternalTxnStats {
+		return
+	}
+	se := a.Ctx
+	if !se.GetSessionVars().InRestrictedSQL && se.GetSessionVars().IsPlanReplayerCaptureEnabled() {
+		stmtNode := a.GetStmtNode()
+		if se.GetSessionVars().EnablePlanReplayedContinuesCapture {
+			if checkPlanReplayerContinuesCaptureValidStmt(stmtNode) {
+				checkPlanReplayerContinuesCapture(se, stmtNode, txnTS)
+			}
+		} else {
+			checkPlanReplayerCaptureTask(se, stmtNode, txnTS)
+		}
 	}
 }
 
@@ -1799,7 +1805,7 @@ func (a *ExecStmt) SummaryStmt(succ bool) {
 	}
 
 	// Internal SQLs must also be recorded to keep the consistency of `PrevStmt` and `PrevStmtDigest`.
-	if !stmtsummary.StmtSummaryByDigestMap.Enabled() || ((sessVars.InRestrictedSQL || len(userString) == 0) && !stmtsummary.StmtSummaryByDigestMap.EnabledInternal()) {
+	if !stmtsummaryv2.Enabled() || ((sessVars.InRestrictedSQL || len(userString) == 0) && !stmtsummaryv2.EnabledInternal()) {
 		sessVars.SetPrevStmtDigest("")
 		return
 	}
@@ -1916,7 +1922,7 @@ func (a *ExecStmt) SummaryStmt(succ bool) {
 	if a.retryCount > 0 {
 		stmtExecInfo.ExecRetryTime = costTime - sessVars.DurationParse - sessVars.DurationCompile - time.Since(a.retryStartTime)
 	}
-	stmtsummary.StmtSummaryByDigestMap.AddStatement(stmtExecInfo)
+	stmtsummaryv2.Add(stmtExecInfo)
 }
 
 // GetTextToLog return the query text to log.
@@ -2112,7 +2118,6 @@ func sendPlanReplayerDumpTask(key replayer.PlanReplayerTaskKey, sctx sessionctx.
 	dumpTask := &domain.PlanReplayerDumpTask{
 		PlanReplayerTaskKey: key,
 		StartTS:             startTS,
-		EncodePlan:          GetEncodedPlan,
 		TblStats:            stmtCtx.TableStats,
 		SessionBindings:     handle.GetAllBindRecord(),
 		SessionVars:         sctx.GetSessionVars(),
@@ -2121,6 +2126,7 @@ func sendPlanReplayerDumpTask(key replayer.PlanReplayerTaskKey, sctx sessionctx.
 		IsCapture:           true,
 		IsContinuesCapture:  isContinuesCapture,
 	}
+	dumpTask.EncodedPlan, _ = GetEncodedPlan(stmtCtx, false)
 	if _, ok := stmtNode.(*ast.ExecuteStmt); ok {
 		nsql, _ := sctx.GetSessionVars().StmtCtx.SQLDigest()
 		dumpTask.InExecute = true
