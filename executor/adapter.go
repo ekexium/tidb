@@ -1094,6 +1094,10 @@ func (a *ExecStmt) handlePessimisticLockError(ctx context.Context, lockErr error
 	}
 	a.retryCount++
 	a.retryStartTime = time.Now()
+	logutil.Logger(ctx).Info("statement retry", zap.Uint("retry count", a.retryCount),
+		zap.Uint64("txnStartTS", a.Ctx.GetSessionVars().TxnCtx.StartTS),
+		zap.Time("retry start time", a.retryStartTime),
+	)
 
 	err = txnManager.OnStmtRetry(ctx)
 	if err != nil {
