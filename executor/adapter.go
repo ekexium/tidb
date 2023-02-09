@@ -1041,6 +1041,7 @@ func (a *ExecStmt) handlePessimisticLockError(ctx context.Context, lockErr error
 	logutil.Logger(ctx).Warn("statement pessimistic retry count",
 		zap.Uint64("connection id", a.Ctx.GetSessionVars().ConnectionID),
 		zap.Uint("retry count", a.retryCount),
+		zap.Error(lockErr),
 		zap.Time("retry time", time.Now()),
 	)
 	a.retryStartTime = time.Now()
