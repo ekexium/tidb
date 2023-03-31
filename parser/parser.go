@@ -21933,6 +21933,7 @@ yynewstate:
 				Format:             yyS[yypt-11].item.(*string),
 				OnDuplicate:        yyS[yypt-10].item.(ast.OnDuplicateKeyHandlingType),
 				Table:              yyS[yypt-7].item.(*ast.TableName),
+				Charset:            yyS[yypt-6].item.(*string),
 				FieldsInfo:         yyS[yypt-5].item.(*ast.FieldsClause),
 				LinesInfo:          yyS[yypt-4].item.(*ast.LinesClause),
 				IgnoreLines:        yyS[yypt-3].item.(*uint64),
@@ -21974,6 +21975,15 @@ yynewstate:
 	case 2490:
 		{
 			v := getUint64FromNUM(yyS[yypt-1].item)
+			parser.yyVAL.item = &v
+		}
+	case 2491:
+		{
+			parser.yyVAL.item = (*string)(nil)
+		}
+	case 2492:
+		{
+			v := yyS[yypt-0].ident
 			parser.yyVAL.item = &v
 		}
 	case 2493:
