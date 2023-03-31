@@ -599,8 +599,8 @@ github.com/eapache/go-xerial-snappy v0.0.0-20180814174437-776d5712da21 h1:YEetp8
 github.com/eapache/go-xerial-snappy v0.0.0-20180814174437-776d5712da21/go.mod h1:+020luEh2TKB4/GOp8oxxtq0Daoen/Cii55CzbTV6DU=
 github.com/eapache/queue v1.1.0 h1:YOEu7KNc61ntiQlcEeUIoDTJ2o8mQznoNvUhiigpIqc=
 github.com/eapache/queue v1.1.0/go.mod h1:6eCeP0CKFpHLu8blIFXhExK/dRa7WDZfr6jVFPTqq+I=
-github.com/ekexium/client-go/v2 v2.0.0-alpha.0.20230330110642-380744c9b293 h1:NwRupvFcEpsftQvrAa3u0uREUBatoLh4jSl6ThYCniI=
-github.com/ekexium/client-go/v2 v2.0.0-alpha.0.20230330110642-380744c9b293/go.mod h1:Yl3SQ08KlBw/AcSp40bPGrwlgbih/UG3EfJYC1P52EA=
+github.com/ekexium/client-go/v2 v2.0.0-alpha.0.20230331070236-956ce1fcf872 h1:C9Sthmi7UevOC/rMs9j9jeYmz//R9E+vq1LgNIXVYgE=
+github.com/ekexium/client-go/v2 v2.0.0-alpha.0.20230331070236-956ce1fcf872/go.mod h1:ItL2wi9UsstjzGA7PgAp457twwKfJli4w9facJD5UC8=
 github.com/ekexium/kvproto v0.0.0-20230330070143-2647c215acdb h1:qWyo4c9992RlLL2zmnmcANJBiphtXleWymk/3W42LVs=
 github.com/ekexium/kvproto v0.0.0-20230330070143-2647c215acdb/go.mod h1:RjuuhxITxwATlt5adgTedg3ehKk01M03L1U4jNHdeeQ=
 github.com/eknkc/amber v0.0.0-20171010120322-cdade1c07385/go.mod h1:0vRUJqYpeSZifjYj7uP3BG/gKcuzL9xWVV/Y+cK33KM=
@@ -1319,8 +1319,8 @@ github.com/tiancaiamao/appdash v0.0.0-20181126055449-889f96f722a2 h1:mbAskLJ0oJf
 github.com/tiancaiamao/appdash v0.0.0-20181126055449-889f96f722a2/go.mod h1:2PfKggNGDuadAa0LElHrByyrz4JPZ9fFx6Gs7nx7ZZU=
 github.com/tiancaiamao/gp v0.0.0-20221230034425-4025bc8a4d4a h1:J/YdBZ46WKpXsxsW93SG+q0F8KI+yFrcIDT4c/RNoc4=
 github.com/tiancaiamao/gp v0.0.0-20221230034425-4025bc8a4d4a/go.mod h1:h4xBhSNtOeEosLJ4P7JyKXX7Cabg7AVkWCK5gV2vOrM=
-github.com/tikv/pd/client v0.0.0-20230329032054-05f86a47e154 h1:Tk9xmtR6vicVhw+mNKcNpHIyyOcaM7e2DCwKL8E2+bs=
-github.com/tikv/pd/client v0.0.0-20230329032054-05f86a47e154/go.mod h1:3cTcfo8GRA2H/uSttqA3LvMfMSHVBJaXk3IgkFXFVxo=
+github.com/tikv/pd/client v0.0.0-20230329114254-1948c247c2b1 h1:bzlSSzw+6qTwPs8pMcPI1bt27TAOhSdAEwdPCz6eBlg=
+github.com/tikv/pd/client v0.0.0-20230329114254-1948c247c2b1/go.mod h1:3cTcfo8GRA2H/uSttqA3LvMfMSHVBJaXk3IgkFXFVxo=
 github.com/timakin/bodyclose v0.0.0-20221125081123-e39cf3fc478e h1:MV6KaVu/hzByHP0UvJ4HcMGE/8a6A4Rggc/0wx2AvJo=
 github.com/timakin/bodyclose v0.0.0-20221125081123-e39cf3fc478e/go.mod h1:27bSVNWSBOHm+qRp1T9qzaIpsWEP6TbUnei/43HK+PQ=
 github.com/tklauser/go-sysconf v0.3.9/go.mod h1:11DU/5sG7UexIrp/O6g35hrWzu0JxlwQ3LSFUzyeuhs=
