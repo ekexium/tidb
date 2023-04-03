@@ -599,8 +599,8 @@ github.com/eapache/go-xerial-snappy v0.0.0-20180814174437-776d5712da21 h1:YEetp8
 github.com/eapache/go-xerial-snappy v0.0.0-20180814174437-776d5712da21/go.mod h1:+020luEh2TKB4/GOp8oxxtq0Daoen/Cii55CzbTV6DU=
 github.com/eapache/queue v1.1.0 h1:YOEu7KNc61ntiQlcEeUIoDTJ2o8mQznoNvUhiigpIqc=
 github.com/eapache/queue v1.1.0/go.mod h1:6eCeP0CKFpHLu8blIFXhExK/dRa7WDZfr6jVFPTqq+I=
-github.com/ekexium/client-go/v2 v2.0.0-alpha.0.20230331074244-1c7c201bc793 h1:Fh5oDmM905DBNu9uWBN5OnhC5xD3QelxH0qHygVz2Tg=
-github.com/ekexium/client-go/v2 v2.0.0-alpha.0.20230331074244-1c7c201bc793/go.mod h1:ItL2wi9UsstjzGA7PgAp457twwKfJli4w9facJD5UC8=
+github.com/ekexium/client-go/v2 v2.0.0-alpha.0.20230403080135-0ea96510eac6 h1:EO1DdjOqb4GdOrEMQzIwL0n5Ebfs1KqhwpgFqM8GWfo=
+github.com/ekexium/client-go/v2 v2.0.0-alpha.0.20230403080135-0ea96510eac6/go.mod h1:ItL2wi9UsstjzGA7PgAp457twwKfJli4w9facJD5UC8=
 github.com/ekexium/kvproto v0.0.0-20230330070143-2647c215acdb h1:qWyo4c9992RlLL2zmnmcANJBiphtXleWymk/3W42LVs=
 github.com/ekexium/kvproto v0.0.0-20230330070143-2647c215acdb/go.mod h1:RjuuhxITxwATlt5adgTedg3ehKk01M03L1U4jNHdeeQ=
 github.com/eknkc/amber v0.0.0-20171010120322-cdade1c07385/go.mod h1:0vRUJqYpeSZifjYj7uP3BG/gKcuzL9xWVV/Y+cK33KM=
