@@ -60,7 +60,7 @@ func newChunkProcessor(
 ) (*chunkProcessor, error) {
 	blockBufSize := int64(cfg.Mydumper.ReadBlockSize)
 
-	reader, err := mydump.OpenReader(ctx, chunk.FileMeta, store)
+	reader, err := mydump.OpenReader(ctx, &chunk.FileMeta, store)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -574,7 +574,7 @@ func (cr *chunkProcessor) deliverLoop(
 	return
 }
 
-func (cr *chunkProcessor) maybeSaveCheckpoint(
+func (*chunkProcessor) maybeSaveCheckpoint(
 	rc *Controller,
 	t *TableImporter,
 	engineID int32,
