@@ -54,7 +54,6 @@ require (
 	github.com/gostaticanalysis/forcetypeassert v0.1.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/iancoleman/strcase v0.2.0
-	github.com/jarcoal/httpmock v1.2.0
 	github.com/jedib0t/go-pretty/v6 v6.2.2
 	github.com/jingyugao/rowserrcheck v1.1.1
 	github.com/joho/sqltocsv v0.0.0-20210428211105-a6d6801d59df
@@ -93,7 +92,7 @@ require (
 	github.com/stretchr/testify v1.8.2
 	github.com/tdakkota/asciicheck v0.2.0
 	github.com/tiancaiamao/appdash v0.0.0-20181126055449-889f96f722a2
-	github.com/tikv/client-go/v2 v2.0.7-0.20230328084104-ea13e9700259
+	github.com/tikv/client-go/v2 v2.0.7-0.20230406064257-1ec0ff5bf443
 	github.com/tikv/pd/client v0.0.0-20230329114254-1948c247c2b1
 	github.com/timakin/bodyclose v0.0.0-20221125081123-e39cf3fc478e
 	github.com/twmb/murmur3 v1.1.6
@@ -281,7 +280,6 @@ require (
 replace (
 	// fix potential security issue(CVE-2020-26160) introduced by indirect dependency.
 	github.com/dgrijalva/jwt-go => github.com/form3tech-oss/jwt-go v3.2.6-0.20210809144907-32ab6a8243d7+incompatible
-	github.com/pingcap/kvproto => github.com/ekexium/kvproto v0.0.0-20230330070143-2647c215acdb
 	github.com/pingcap/tidb/parser => ./parser
 	github.com/tikv/client-go/v2 => github.com/ekexium/client-go/v2 v2.0.0-alpha.0.20230410083227-73db570910b6
 	go.opencensus.io => go.opencensus.io v0.23.1-0.20220331163232-052120675fac

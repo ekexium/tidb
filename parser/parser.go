@@ -15805,7 +15805,7 @@ yynewstate:
 		{
 			field := yyS[yypt-0].item.(*ast.SelectField)
 			field.Offset = parser.startOffset(&yyS[yypt])
-			if field.Expr != nil && field.AsName.O == "" {
+			if field.Expr != nil {
 				endOffset := parser.yylval.offset
 				field.SetText(parser.lexer.client, strings.TrimSpace(parser.src[field.Offset:endOffset]))
 			}
@@ -15816,7 +15816,7 @@ yynewstate:
 			fl := yyS[yypt-2].item.([]*ast.SelectField)
 			field := yyS[yypt-0].item.(*ast.SelectField)
 			field.Offset = parser.startOffset(&yyS[yypt])
-			if field.Expr != nil && field.AsName.O == "" {
+			if field.Expr != nil {
 				endOffset := parser.yylval.offset
 				field.SetText(parser.lexer.client, strings.TrimSpace(parser.src[field.Offset:endOffset]))
 			}
