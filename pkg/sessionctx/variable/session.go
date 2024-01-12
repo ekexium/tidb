@@ -2787,6 +2787,9 @@ type Concurrency struct {
 
 	// IdleTransactionTimeout indicates the maximum time duration a transaction could be idle, unit is second.
 	IdleTransactionTimeout int
+
+	// EnablePipelinedTxn indicates whether to enable pipelined transaction.
+	EnablePipelinedTxn bool
 }
 
 // SetIndexLookupConcurrency set the number of concurrent index lookup worker.

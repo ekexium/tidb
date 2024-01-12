@@ -3001,6 +3001,11 @@ var defaultSysVars = []*SysVar{
 			s.IdleTransactionTimeout = tidbOptPositiveInt32(val, DefTiDBIdleTransactionTimeout)
 			return nil
 		}},
+	{Scope: ScopeGlobal | ScopeSession, Name: TiDBEnablePipelinedTxn, Value: BoolToOnOff(DefTiDBEnablePipelinedTxn), Type: TypeBool,
+		SetSession: func(s *SessionVars, val string) error {
+			s.EnablePipelinedTxn = TiDBOptOn(val)
+			return nil
+		}},
 }
 
 // GlobalSystemVariableInitialValue gets the default value for a system variable including ones that are dynamically set (e.g. based on the store)

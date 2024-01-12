@@ -197,6 +197,9 @@ func (txn *tikvTxn) Set(k kv.Key, v []byte) error {
 }
 
 func (txn *tikvTxn) GetMemBuffer() kv.MemBuffer {
+	if txn.IsPipelined() {
+		return newPipelinedMemBuffer(txn.KVTxn.GetPipelinedMemBuffer())
+	}
 	return newMemBuffer(txn.KVTxn.GetMemBuffer())
 }
 

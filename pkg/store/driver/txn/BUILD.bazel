@@ -6,6 +6,7 @@ go_library(
         "batch_getter.go",
         "binlog.go",
         "error.go",
+        "pipelined_driver.go",
         "scanner.go",
         "snapshot.go",
         "txn_driver.go",
