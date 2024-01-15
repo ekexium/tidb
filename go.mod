@@ -323,6 +323,6 @@ replace (
 
 replace (
 	github.com/pingcap/kvproto => github.com/ekexium/kvproto v0.0.0-20240111104105-12e169f6dd88
-	github.com/tikv/client-go/v2 => github.com/you06/client-go/v2 v2.0.0-alpha.0.20240115080734-e6447b9f04a2
+	github.com/tikv/client-go/v2 => github.com/you06/client-go/v2 v2.0.0-alpha.0.20240115082238-acca0a4b914f
 	github.com/tikv/pd/client => github.com/you06/pd/client v0.0.0-20240115070044-4986fcfa1341
 )
