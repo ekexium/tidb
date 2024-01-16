@@ -378,6 +378,22 @@ func (svr *Server) KvCommit(ctx context.Context, req *kvrpcpb.CommitRequest) (*k
 	return resp, nil
 }
 
+// KvFlush implements the tikvpb.TikvServer interface.
+func (svr *Server) KvFlush(ctx context.Context, req *kvrpcpb.FlushRequest) (*kvrpcpb.FlushResponse, error) {
+	reqCtx, err := newRequestCtx(svr, req.Context, "KvFlush")
+	if err != nil {
+		return &kvrpcpb.FlushResponse{Errors: []*kvrpcpb.KeyError{convertToKeyError(err)}}, nil
+	}
+	defer reqCtx.finish()
+	if reqCtx.regErr != nil {
+		return &kvrpcpb.FlushResponse{RegionError: reqCtx.regErr}, nil
+	}
+	err = svr.mvccStore.Flush(reqCtx, req)
+	resp := &kvrpcpb.FlushResponse{}
+	resp.Errors, resp.RegionError = convertToPBErrors(err)
+	return resp, nil
+}
+
 // RawGetKeyTTL implements the tikvpb.TikvServer interface.
 func (svr *Server) RawGetKeyTTL(ctx context.Context, req *kvrpcpb.RawGetKeyTTLRequest) (*kvrpcpb.RawGetKeyTTLResponse, error) {
 	// TODO
