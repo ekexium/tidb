@@ -1817,8 +1817,8 @@ github.com/xitongsys/parquet-go-source v0.0.0-20200817004010-026bad9b25d0 h1:a74
 github.com/xitongsys/parquet-go-source v0.0.0-20200817004010-026bad9b25d0/go.mod h1:HYhIKsdns7xz80OgkbgJYrtQY7FjHWHKH6cvN7+czGE=
 github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77/go.mod h1:aYKd//L2LvnjZzWKhF00oedf4jCCReLcmhLdhm1A27Q=
 github.com/yalp/jsonpath v0.0.0-20180802001716-5cc68e5049a0/go.mod h1:/LWChgwKmvncFJFHJ7Gvn9wZArjbV5/FppcK2fKk/tI=
-github.com/you06/client-go/v2 v2.0.0-alpha.0.20240117045656-d6dd1c170e00 h1:2Nzs4yzhpVSsgTVJUK/L9XoQOGlncWCd9/sqH7aX1d8=
-github.com/you06/client-go/v2 v2.0.0-alpha.0.20240117045656-d6dd1c170e00/go.mod h1:swcQV8gcoGdR6zyCZhGc+ZNzG66S5US+1HrS6ju1AVk=
+github.com/you06/client-go/v2 v2.0.0-alpha.0.20240117061629-faba5e73a648 h1:8lPJ6DARe+8Zo96FS+fKkTxXkwLlmco4wfAc0fHO19Y=
+github.com/you06/client-go/v2 v2.0.0-alpha.0.20240117061629-faba5e73a648/go.mod h1:swcQV8gcoGdR6zyCZhGc+ZNzG66S5US+1HrS6ju1AVk=
 github.com/you06/pd/client v0.0.0-20240115070044-4986fcfa1341 h1:VXVSz6N3h7VakWvYVrFyjb6epnWFfAdWp6HD7BZjf70=
 github.com/you06/pd/client v0.0.0-20240115070044-4986fcfa1341/go.mod h1:ZilHJZR8wgqENRi26gtnPoKIXAB1EqytFweUhzxetx0=
 github.com/yudai/gojsondiff v1.0.0/go.mod h1:AY32+k2cwILAkW1fbgxQ5mUmMiZFgLIV+FBNExI05xg=
