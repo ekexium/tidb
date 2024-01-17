@@ -15,14 +15,17 @@
 package pipelinedtxntest
 
 import (
+	"github.com/stretchr/testify/require"
 	"testing"
 
 	"github.com/pingcap/tidb/pkg/testkit"
 )
 
-func compareTables(tk *testkit.TestKit, t1, t2 string) {
+func compareTables(t *testing.T, tk *testkit.TestKit, t1, t2 string) {
 	t1Rows := tk.MustQuery("select * from " + t1).Sort().Rows()
-	tk.MustQuery("select * from " + t2).Sort().Check(t1Rows)
+	t2Rows := tk.MustQuery("select * from " + t2)
+	require.Equal(t, len(t1Rows), len(t2Rows.Rows()))
+	t2Rows.Sort().Check(t1Rows)
 }
 
 func TestPipelinedTxnInsert(t *testing.T) {
@@ -37,5 +40,8 @@ func TestPipelinedTxnInsert(t *testing.T) {
 	}
 	tk.MustExec("set session tidb_enable_pipelined_txn = 1")
 	tk.MustExec("insert into _t select * from t")
-	compareTables(tk, "t", "_t")
+	compareTables(t, tk, "t", "_t")
+
+	tk.MustExec("insert into t select a + 10000, b from t")
+	tk.MustQuery("select count(1) from t").Check(testkit.Rows("20000"))
 }

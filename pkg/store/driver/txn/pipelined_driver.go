@@ -41,10 +41,7 @@ func (m *pipelinedMemBuffer) Size() int {
 }
 
 func (m *pipelinedMemBuffer) Delete(k kv.Key) error {
-	if err := m.PipelinedMemDB.GetMemDB().Delete(k); err != nil {
-		return err
-	}
-	return m.PipelinedMemDB.MayFlush()
+	return m.PipelinedMemDB.GetMemDB().Delete(k)
 }
 
 func (m *pipelinedMemBuffer) RemoveFromBuffer(k kv.Key) {
@@ -53,10 +50,7 @@ func (m *pipelinedMemBuffer) RemoveFromBuffer(k kv.Key) {
 
 func (m *pipelinedMemBuffer) DeleteWithFlags(k kv.Key, ops ...kv.FlagsOp) error {
 	err := m.PipelinedMemDB.GetMemDB().DeleteWithFlags(k, getTiKVFlagsOps(ops)...)
-	if err != nil {
-		return derr.ToTiDBErr(err)
-	}
-	return m.PipelinedMemDB.MayFlush()
+	return derr.ToTiDBErr(err)
 }
 
 func (m *pipelinedMemBuffer) UpdateFlags(k kv.Key, ops ...kv.FlagsOp) {
@@ -90,18 +84,12 @@ func (m *pipelinedMemBuffer) InspectStage(handle kv.StagingHandle, f func(kv.Key
 
 func (m *pipelinedMemBuffer) Set(key kv.Key, value []byte) error {
 	err := m.PipelinedMemDB.GetMemDB().SetWithFlags(key, value, tikvstore.SetPresumeKeyNotExists)
-	if err != nil {
-		derr.ToTiDBErr(err)
-	}
-	return m.PipelinedMemDB.MayFlush()
+	return derr.ToTiDBErr(err)
 }
 
 func (m *pipelinedMemBuffer) SetWithFlags(key kv.Key, value []byte, ops ...kv.FlagsOp) error {
 	err := m.PipelinedMemDB.GetMemDB().SetWithFlags(key, value, append(getTiKVFlagsOps(ops), tikvstore.SetPresumeKeyNotExists)...)
-	if err != nil {
-		derr.ToTiDBErr(err)
-	}
-	return m.PipelinedMemDB.MayFlush()
+	return derr.ToTiDBErr(err)
 }
 
 // Iter creates an Iterator positioned on the first entry that k <= entry's key.
@@ -133,4 +121,9 @@ func (m *pipelinedMemBuffer) SnapshotIterReverse(k, lowerBound kv.Key) kv.Iterat
 // SnapshotGetter returns a Getter for a snapshot of MemBuffer.
 func (m *pipelinedMemBuffer) SnapshotGetter() kv.Getter {
 	return newKVGetter(m.GetMemDB().SnapshotGetter())
+}
+
+// MayFlush implements kv.MemBuffer.MayFlush interface.
+func (m *pipelinedMemBuffer) MayFlush() error {
+	return m.PipelinedMemDB.MayFlush()
 }

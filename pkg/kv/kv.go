@@ -188,6 +188,9 @@ type MemBuffer interface {
 
 	// RemoveFromBuffer removes the entry from the buffer. It's used for testing.
 	RemoveFromBuffer(Key)
+
+	// MayFlush will be called in pipelined txn
+	MayFlush() error
 }
 
 // FindKeysInStage returns all keys in the given stage that satisfies the given condition.

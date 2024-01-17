@@ -349,7 +349,15 @@ func (txn *tikvTxn) extractKeyExistsErr(key kv.Key) error {
 
 // SetAssertion sets an assertion for the key operation.
 func (txn *tikvTxn) SetAssertion(key []byte, assertion ...kv.FlagsOp) error {
-	f, err := txn.GetUnionStore().GetMemBuffer().GetFlags(key)
+	var (
+		f   tikvstore.KeyFlags
+		err error
+	)
+	if txn.IsPipelined() {
+		f, err = txn.GetPipelinedMemBuffer().GetFlags(key)
+	} else {
+		f, err = txn.GetUnionStore().GetMemBuffer().GetFlags(key)
+	}
 	if err != nil && !tikverr.IsErrNotFound(err) {
 		return err
 	}
@@ -361,8 +369,31 @@ func (txn *tikvTxn) SetAssertion(key []byte, assertion ...kv.FlagsOp) error {
 }
 
 func (txn *tikvTxn) UpdateMemBufferFlags(key []byte, flags ...kv.FlagsOp) {
-	txn.GetUnionStore().GetMemBuffer().UpdateFlags(key, getTiKVFlagsOps(flags)...)
+	var memdb *tikv.MemDB
+	if txn.IsPipelined() {
+		memdb = txn.GetPipelinedMemBuffer().GetMemDB()
+	} else {
+		memdb = txn.GetUnionStore().GetMemBuffer()
+	}
+	memdb.UpdateFlags(key, getTiKVFlagsOps(flags)...)
 }
+
+//// SetAssertion sets an assertion for the key operation.
+//func (txn *tikvTxn) SetAssertion(key []byte, assertion ...kv.FlagsOp) error {
+//	f, err := txn.GetUnionStore().GetMemBuffer().GetFlags(key)
+//	if err != nil && !tikverr.IsErrNotFound(err) {
+//		return err
+//	}
+//	if err == nil && f.HasAssertionFlags() {
+//		return nil
+//	}
+//	txn.UpdateMemBufferFlags(key, assertion...)
+//	return nil
+//}
+//
+//func (txn *tikvTxn) UpdateMemBufferFlags(key []byte, flags ...kv.FlagsOp) {
+//	txn.GetUnionStore().GetMemBuffer().UpdateFlags(key, getTiKVFlagsOps(flags)...)
+//}
 
 func (txn *tikvTxn) generateWriteConflictForLockedWithConflict(lockCtx *kv.LockCtx) error {
 	if lockCtx.MaxLockedWithConflictTS != 0 {

@@ -128,6 +128,9 @@ func (m *memBuffer) SnapshotGetter() kv.Getter {
 	return newKVGetter(m.MemDB.SnapshotGetter())
 }
 
+// MayFlush implements kv.MemBuffer.MayFlush interface.
+func (m *memBuffer) MayFlush() error { return nil }
+
 type tikvGetter struct {
 	tikv.Getter
 }

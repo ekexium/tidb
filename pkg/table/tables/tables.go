@@ -628,7 +628,7 @@ func (t *TableCommon) UpdateRecord(ctx context.Context, sctx sessionctx.Context,
 		colSize[col.ID] = int64(newLen - oldLen)
 	}
 	sessVars.TxnCtx.UpdateDeltaForTable(t.physicalTableID, 0, 1, colSize)
-	return nil
+	return memBuffer.MayFlush()
 }
 
 func (t *TableCommon) rebuildIndices(ctx sessionctx.Context, txn kv.Transaction, h kv.Handle, touched []bool, oldData []types.Datum, newData []types.Datum, opts ...table.CreateIdxOptFunc) error {
@@ -1121,6 +1121,9 @@ func (t *TableCommon) AddRecord(sctx sessionctx.Context, r []types.Datum, opts .
 		colSize[col.ID] = int64(size) - 1
 	}
 	sessVars.TxnCtx.UpdateDeltaForTable(t.physicalTableID, 1, 1, colSize)
+	if err = memBuffer.MayFlush(); err != nil {
+		return nil, err
+	}
 	return recordID, nil
 }
 
@@ -1398,7 +1401,10 @@ func (t *TableCommon) RemoveRecord(ctx sessionctx.Context, h kv.Handle, r []type
 		colSize[col.ID] = -int64(size - 1)
 	}
 	ctx.GetSessionVars().TxnCtx.UpdateDeltaForTable(t.physicalTableID, -1, 1, colSize)
-	return err
+	if err != nil {
+		return err
+	}
+	return memBuffer.MayFlush()
 }
 
 func (t *TableCommon) addInsertBinlog(ctx sessionctx.Context, h kv.Handle, row []types.Datum, colIDs []int64) error {
