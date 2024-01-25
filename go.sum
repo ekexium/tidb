@@ -1036,8 +1036,8 @@ github.com/eapache/go-xerial-snappy v0.0.0-20180814174437-776d5712da21 h1:YEetp8
 github.com/eapache/go-xerial-snappy v0.0.0-20180814174437-776d5712da21/go.mod h1:+020luEh2TKB4/GOp8oxxtq0Daoen/Cii55CzbTV6DU=
 github.com/eapache/queue v1.1.0 h1:YOEu7KNc61ntiQlcEeUIoDTJ2o8mQznoNvUhiigpIqc=
 github.com/eapache/queue v1.1.0/go.mod h1:6eCeP0CKFpHLu8blIFXhExK/dRa7WDZfr6jVFPTqq+I=
-github.com/ekexium/kvproto v0.0.0-20240111104105-12e169f6dd88 h1:1YZ4Yr4A/+5WC7aJ69pKlim8z3q3cBc+ZXnQdBnczlg=
-github.com/ekexium/kvproto v0.0.0-20240111104105-12e169f6dd88/go.mod h1:rXxWk2UnwfUhLXha1jxRWPADw9eMZGWEWCg92Tgmb/8=
+github.com/ekexium/kvproto v0.0.0-20240124080939-d0c78cc1c276 h1:XZMoJW/XT2fv54uil5zb9k6Yg9XzUQw96xc6sKINKtA=
+github.com/ekexium/kvproto v0.0.0-20240124080939-d0c78cc1c276/go.mod h1:rXxWk2UnwfUhLXha1jxRWPADw9eMZGWEWCg92Tgmb/8=
 github.com/eknkc/amber v0.0.0-20171010120322-cdade1c07385/go.mod h1:0vRUJqYpeSZifjYj7uP3BG/gKcuzL9xWVV/Y+cK33KM=
 github.com/emirpasic/gods v1.18.1 h1:FXtiHYKDGKCW2KzwZKx0iC0PQmdlorYgdFG9jPXJ1Bc=
 github.com/emirpasic/gods v1.18.1/go.mod h1:8tpGGwCnJ5H4r6BWwaV6OrWmMoPhUl5jm/FMNAnJvWQ=
@@ -1817,8 +1817,8 @@ github.com/xitongsys/parquet-go-source v0.0.0-20200817004010-026bad9b25d0 h1:a74
 github.com/xitongsys/parquet-go-source v0.0.0-20200817004010-026bad9b25d0/go.mod h1:HYhIKsdns7xz80OgkbgJYrtQY7FjHWHKH6cvN7+czGE=
 github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77/go.mod h1:aYKd//L2LvnjZzWKhF00oedf4jCCReLcmhLdhm1A27Q=
 github.com/yalp/jsonpath v0.0.0-20180802001716-5cc68e5049a0/go.mod h1:/LWChgwKmvncFJFHJ7Gvn9wZArjbV5/FppcK2fKk/tI=
-github.com/you06/client-go/v2 v2.0.0-alpha.0.20240117061629-faba5e73a648 h1:8lPJ6DARe+8Zo96FS+fKkTxXkwLlmco4wfAc0fHO19Y=
-github.com/you06/client-go/v2 v2.0.0-alpha.0.20240117061629-faba5e73a648/go.mod h1:swcQV8gcoGdR6zyCZhGc+ZNzG66S5US+1HrS6ju1AVk=
+github.com/you06/client-go/v2 v2.0.0-alpha.0.20240124084822-4a5ce3c253a9 h1:JdCDDme1+XKinuQh6YUMyc1ML6tvpY+PekbuZ/XmmF8=
+github.com/you06/client-go/v2 v2.0.0-alpha.0.20240124084822-4a5ce3c253a9/go.mod h1:iD5rKgM6oDYzkerm6yDAsYJzE7toj8YbYoIlaxNZ1co=
 github.com/you06/pd/client v0.0.0-20240115070044-4986fcfa1341 h1:VXVSz6N3h7VakWvYVrFyjb6epnWFfAdWp6HD7BZjf70=
 github.com/you06/pd/client v0.0.0-20240115070044-4986fcfa1341/go.mod h1:ZilHJZR8wgqENRi26gtnPoKIXAB1EqytFweUhzxetx0=
 github.com/yudai/gojsondiff v1.0.0/go.mod h1:AY32+k2cwILAkW1fbgxQ5mUmMiZFgLIV+FBNExI05xg=
