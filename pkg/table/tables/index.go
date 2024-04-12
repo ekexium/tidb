@@ -25,6 +25,7 @@ import (
 	"github.com/pingcap/tidb/pkg/kv"
 	"github.com/pingcap/tidb/pkg/parser/model"
 	"github.com/pingcap/tidb/pkg/parser/mysql"
+	"github.com/pingcap/tidb/pkg/sessionctx/variable"
 	"github.com/pingcap/tidb/pkg/table"
 	"github.com/pingcap/tidb/pkg/tablecodec"
 	"github.com/pingcap/tidb/pkg/types"
@@ -267,7 +268,8 @@ func (c *index) Create(sctx table.MutateContext, txn kv.Transaction, indexedValu
 					return nil, err
 				}
 			}
-			if !opt.IgnoreAssertion && (!opt.Untouched) {
+			if !opt.IgnoreAssertion && (!opt.Untouched) && sctx.GetSessionVars().
+				AssertionLevel != variable.AssertionLevelOff {
 				if sctx.GetSessionVars().LazyCheckKeyNotExists() && !txn.IsPessimistic() {
 					err = txn.SetAssertion(key, kv.SetAssertUnknown)
 				} else {
@@ -345,10 +347,12 @@ func (c *index) Create(sctx table.MutateContext, txn kv.Transaction, indexedValu
 			if opt.IgnoreAssertion {
 				continue
 			}
-			if lazyCheck && !txn.IsPessimistic() {
-				err = txn.SetAssertion(key, kv.SetAssertUnknown)
-			} else {
-				err = txn.SetAssertion(key, kv.SetAssertNotExist)
+			if sctx.GetSessionVars().AssertionLevel != variable.AssertionLevelOff {
+				if lazyCheck && !txn.IsPessimistic() {
+					err = txn.SetAssertion(key, kv.SetAssertUnknown)
+				} else {
+					err = txn.SetAssertion(key, kv.SetAssertNotExist)
+				}
 			}
 			if err != nil {
 				return nil, err

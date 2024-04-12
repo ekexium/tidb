@@ -411,6 +411,9 @@ func (t *TableCommon) RecordKey(h kv.Handle) kv.Key {
 // shouldAssert checks if the partition should be in consistent
 // state and can have assertion.
 func (t *TableCommon) shouldAssert(level variable.AssertionLevel) bool {
+	if level == variable.AssertionLevelOff {
+		return false
+	}
 	p := t.Meta().Partition
 	if p != nil {
 		// This disables asserting during Reorganize Partition.
@@ -1061,10 +1064,12 @@ func (t *TableCommon) AddRecord(sctx table.MutateContext, r []types.Datum, opts 
 			}
 		}
 	})
-	if setPresume && !txn.IsPessimistic() {
-		err = txn.SetAssertion(key, kv.SetAssertUnknown)
-	} else {
-		err = txn.SetAssertion(key, kv.SetAssertNotExist)
+	if sctx.GetSessionVars().AssertionLevel != variable.AssertionLevelOff {
+		if setPresume && !txn.IsPessimistic() {
+			err = txn.SetAssertion(key, kv.SetAssertUnknown)
+		} else {
+			err = txn.SetAssertion(key, kv.SetAssertNotExist)
+		}
 	}
 	if err != nil {
 		return nil, err
