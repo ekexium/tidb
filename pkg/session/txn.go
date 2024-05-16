@@ -692,15 +692,18 @@ type txnFuture struct {
 	future    oracle.Future
 	store     kv.Storage
 	txnScope  string
-	pipelined bool
+	pipelined tikv.PipelinedMemDBOptions
 }
 
 func (tf *txnFuture) wait() (kv.Transaction, error) {
 	startTS, err := tf.future.Wait()
 	failpoint.Inject("txnFutureWait", func() {})
 	if err == nil {
-		if tf.pipelined {
-			return tf.store.Begin(tikv.WithTxnScope(tf.txnScope), tikv.WithStartTS(startTS), tikv.WithPipelinedMemDB())
+		if tf.pipelined.Enabled {
+			return tf.store.Begin(tikv.WithTxnScope(tf.txnScope), tikv.WithStartTS(startTS), tikv.WithPipelinedMemDB(
+				tf.pipelined.MinFlushKeys, tf.pipelined.MinFlushMemSize,
+				tf.pipelined.ForceFlushMemSizeThreshold,
+			))
 		}
 		return tf.store.Begin(tikv.WithTxnScope(tf.txnScope), tikv.WithStartTS(startTS))
 	} else if config.GetGlobalConfig().Store == "unistore" {
@@ -709,8 +712,11 @@ func (tf *txnFuture) wait() (kv.Transaction, error) {
 
 	logutil.BgLogger().Warn("wait tso failed", zap.Error(err))
 	// It would retry get timestamp.
-	if tf.pipelined {
-		return tf.store.Begin(tikv.WithTxnScope(tf.txnScope), tikv.WithPipelinedMemDB())
+	if tf.pipelined.Enabled {
+		return tf.store.Begin(tikv.WithTxnScope(tf.txnScope), tikv.WithPipelinedMemDB(
+			tf.pipelined.MinFlushKeys, tf.pipelined.MinFlushMemSize,
+			tf.pipelined.ForceFlushMemSizeThreshold,
+		))
 	}
 	return tf.store.Begin(tikv.WithTxnScope(tf.txnScope))
 }

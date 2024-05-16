@@ -424,6 +424,30 @@ var defaultSysVars = []*SysVar{
 		s.ExplicitRequestSourceType = val
 		return nil
 	}},
+	{
+		Scope: ScopeSession, Name: TiDBMinFlushKeys, Value: strconv.Itoa(DefTiDBMinFlushKeys),
+		Type:     TypeInt,
+		MinValue: 1, MaxValue: math.MaxInt32, SetSession: func(s *SessionVars, val string) error {
+			s.MinFlushKeys = TidbOptUint64(val, DefTiDBMinFlushKeys)
+			return nil
+		},
+	},
+	{
+		Scope: ScopeSession, Name: TiDBMinFlushMemSize, Value: strconv.Itoa(DefTiDBMinFlushMemSize),
+		Type:     TypeInt,
+		MinValue: 1, MaxValue: math.MaxInt32, SetSession: func(s *SessionVars, val string) error {
+			s.MinFlushMemSize = TidbOptUint64(val, DefTiDBMinFlushMemSize)
+			return nil
+		},
+	},
+	{
+		Scope: ScopeSession, Name: TiDBForceFlushMemSizeThreshold, Value: strconv.Itoa(DefTiDBForceFlushMemSizeThreshold),
+		Type:     TypeInt,
+		MinValue: 1, MaxValue: math.MaxInt32, SetSession: func(s *SessionVars, val string) error {
+			s.ForceFlushMemSizeThreshold = TidbOptUint64(val, DefTiDBForceFlushMemSizeThreshold)
+			return nil
+		},
+	},
 	/* The system variables below have INSTANCE scope  */
 	{Scope: ScopeInstance, Name: TiDBLogFileMaxDays, Value: strconv.Itoa(config.GetGlobalConfig().Log.File.MaxDays), Type: TypeInt, MinValue: 0, MaxValue: math.MaxInt32, SetGlobal: func(_ context.Context, s *SessionVars, val string) error {
 		maxAge, err := strconv.ParseInt(val, 10, 32)

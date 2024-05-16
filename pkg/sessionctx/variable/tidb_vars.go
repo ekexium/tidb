@@ -281,6 +281,10 @@ const (
 	// TiDBExplicitRequestSourceType indicates the source of the request, it's a complement of RequestSourceType.
 	// The value maybe "lightning", "br", "dumpling" etc.
 	TiDBExplicitRequestSourceType = "tidb_request_source_type"
+
+	TiDBMinFlushKeys               = "tidb_min_flush_keys"
+	TiDBMinFlushMemSize            = "tidb_min_flush_mem_size"
+	TiDBForceFlushMemSizeThreshold = "tidb_force_flush_mem_size_threshold"
 )
 
 // TiDB system variable names that both in session and global scope.
@@ -1489,6 +1493,9 @@ const (
 	DefTiDBDMLType                                    = "STANDARD"
 	DefGroupConcatMaxLen                              = uint64(1024)
 	DefDefaultWeekFormat                              = "0"
+	DefTiDBMinFlushKeys                               = 10000
+	DefTiDBMinFlushMemSize                            = 16 * 1024 * 1024
+	DefTiDBForceFlushMemSizeThreshold                 = 128 * 1024 * 1024
 )
 
 // Process global variables.

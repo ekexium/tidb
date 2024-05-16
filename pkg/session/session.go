@@ -123,6 +123,7 @@ import (
 	"github.com/pingcap/tidb/pkg/util/tracing"
 	tikverr "github.com/tikv/client-go/v2/error"
 	"github.com/tikv/client-go/v2/oracle"
+	"github.com/tikv/client-go/v2/tikv"
 	tikvutil "github.com/tikv/client-go/v2/util"
 	"go.uber.org/zap"
 )
@@ -3863,7 +3864,12 @@ func (s *session) PrepareTSFuture(ctx context.Context, future oracle.Future, sco
 		future:    future,
 		store:     s.store,
 		txnScope:  scope,
-		pipelined: s.usePipelinedDmlOrWarn(),
+		pipelined: tikv.PipelinedMemDBOptions{
+			Enabled: s.usePipelinedDmlOrWarn(),
+			MinFlushKeys: s.GetSessionVars().MinFlushKeys,
+			MinFlushMemSize: s.GetSessionVars().MinFlushMemSize,
+			ForceFlushMemSizeThreshold: s.GetSessionVars().ForceFlushMemSizeThreshold,
+		},
 	})
 	return nil
 }

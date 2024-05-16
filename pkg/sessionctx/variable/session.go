@@ -3017,6 +3017,15 @@ type BatchSize struct {
 
 	// MinPagingSize defines the max size used by the coprocessor paging protocol.
 	MaxPagingSize int
+
+	// For P-DML
+	// MinFlushKeys is the minimum number of keys to trigger flush.
+	// small batch can lead to poor performance and resource waste in random write workload.
+	MinFlushKeys uint64
+	// MinFlushMemSize is the minimum size of MemDB to trigger flush.
+	MinFlushMemSize uint64
+	// ForceFlushMemSizeThreshold is the threshold to force flush MemDB, which controls the max memory consumption of PipelinedMemDB.
+	ForceFlushMemSizeThreshold uint64
 }
 
 const (
