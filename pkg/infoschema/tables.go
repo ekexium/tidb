@@ -2378,6 +2378,10 @@ func (it *infoschemaTable) Cols() []*table.Column {
 	return it.cols
 }
 
+// InitializeColumns implements the columnAPI interface
+func (it *infoschemaTable) InitializeColumns() {
+}
+
 // VisibleCols implements table.Table VisibleCols interface.
 func (it *infoschemaTable) VisibleCols() []*table.Column {
 	return it.cols

@@ -17,6 +17,7 @@ package kv
 import (
 	"context"
 	"math/rand"
+	"reflect"
 
 	"github.com/pingcap/errors"
 	"github.com/pingcap/tidb/br/pkg/logutil"
@@ -169,6 +170,8 @@ func NewBaseKVEncoder(config *encode.EncodingConfig) (*BaseKVEncoder, error) {
 	if err != nil {
 		return nil, errors.Annotate(err, "failed to parse generated column expressions")
 	}
+	println("@@@ ", reflect.TypeOf(config.Table))
+	config.Table.InitializeColumns()
 	return &BaseKVEncoder{
 		GenCols:         genCols,
 		SessionCtx:      se,

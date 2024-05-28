@@ -172,6 +172,11 @@ type columnAPI interface {
 
 	// FullHiddenColsAndVisibleCols returns hidden columns in all states and unhidden columns in public states.
 	FullHiddenColsAndVisibleCols() []*Column
+
+	// InitializeColumns initializes column cache in the table.
+	// It is necessary when there can be concurrent calls of AddRecord/UpdateRecord/RemoveRecord to the
+	// table to avoid data race, e.g. in an IMPORT INTO statement.
+	InitializeColumns()
 }
 
 // MutateContext is used to when mutating a table.

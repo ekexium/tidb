@@ -2214,6 +2214,16 @@ func (t *TableCommon) GetSequenceCommon() *sequenceCommon {
 	return t.sequence
 }
 
+// InitializeColumns implements the columnAPI interface
+func (t *TableCommon) InitializeColumns() {
+	t.Cols()
+	t.HiddenCols()
+	t.VisibleCols()
+	t.WritableCols()
+	t.FullHiddenColsAndVisibleCols()
+	t.WritableConstraint()
+}
+
 // TryGetHandleRestoredDataWrapper tries to get the restored data for handle if needed. The argument can be a slice or a map.
 func TryGetHandleRestoredDataWrapper(tblInfo *model.TableInfo, row []types.Datum, rowMap map[int64]types.Datum, idx *model.IndexInfo) []types.Datum {
 	if !collate.NewCollationEnabled() || !tblInfo.IsCommonHandle || tblInfo.CommonHandleVersion == 0 {
