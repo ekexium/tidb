@@ -161,6 +161,10 @@ func (vt *perfSchemaTable) Cols() []*table.Column {
 	return vt.cols
 }
 
+// InitializeColumns implements the columnAPI interface
+func (vt *perfSchemaTable) InitializeColumnCache() {
+}
+
 // VisibleCols implements table.Table VisibleCols interface.
 func (vt *perfSchemaTable) VisibleCols() []*table.Column {
 	return vt.cols

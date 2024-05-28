@@ -2379,7 +2379,7 @@ func (it *infoschemaTable) Cols() []*table.Column {
 }
 
 // InitializeColumns implements the columnAPI interface
-func (it *infoschemaTable) InitializeColumns() {
+func (it *infoschemaTable) InitializeColumnCache() {
 }
 
 // VisibleCols implements table.Table VisibleCols interface.

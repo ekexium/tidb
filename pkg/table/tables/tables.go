@@ -2215,7 +2215,7 @@ func (t *TableCommon) GetSequenceCommon() *sequenceCommon {
 }
 
 // InitializeColumns implements the columnAPI interface
-func (t *TableCommon) InitializeColumns() {
+func (t *TableCommon) InitializeColumnCache() {
 	t.Cols()
 	t.HiddenCols()
 	t.VisibleCols()

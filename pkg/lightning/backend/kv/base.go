@@ -171,7 +171,7 @@ func NewBaseKVEncoder(config *encode.EncodingConfig) (*BaseKVEncoder, error) {
 		return nil, errors.Annotate(err, "failed to parse generated column expressions")
 	}
 	println("@@@ ", reflect.TypeOf(config.Table))
-	config.Table.InitializeColumns()
+	config.Table.InitializeColumnCache()
 	return &BaseKVEncoder{
 		GenCols:         genCols,
 		SessionCtx:      se,
