@@ -3447,6 +3447,16 @@ var defaultSysVars = []*SysVar{
 			return (*SetPDClientDynamicOption.Load())(TiDBTSOClientRPCMode, val)
 		},
 	},
+	{
+		Scope:     ScopeGlobal,
+		Name:      "tidb_pessimistic_autocommit",
+		Value:     Off,
+		Type:      TypeBool,
+		SetGlobal: func(_ context.Context, s *SessionVars, val string) error {
+			config.GetGlobalConfig().PessimisticTxn.PessimisticAutoCommit.Store(TiDBOptOn(val))
+			return nil
+		},
+	},
 }
 
 // GlobalSystemVariableInitialValue gets the default value for a system variable including ones that are dynamically set (e.g. based on the store)
