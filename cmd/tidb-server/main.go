@@ -878,6 +878,7 @@ func createServer(storage kv.Storage, dom *domain.Domain) *server.Server {
 
 func setupMetrics() {
 	enablePyroscope()
+	runtime.SetBlockProfileRate(5)
 	cfg := config.GetGlobalConfig()
 	// Enable the mutex profile, 1/10 of mutex blocking event sampling.
 	runtime.SetMutexProfileFraction(10)
