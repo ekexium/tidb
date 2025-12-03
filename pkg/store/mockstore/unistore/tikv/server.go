@@ -656,8 +656,17 @@ func (svr *Server) RawDeleteRange(context.Context, *kvrpcpb.RawDeleteRangeReques
 
 // Coprocessor implements the tikvpb.TikvServer interface.
 func (svr *Server) Coprocessor(ctx context.Context, req *coprocessor.Request) (*coprocessor.Response, error) {
+	println("DEBUG: Coprocessor called in unistore")
+	failpoint.Inject("injectBucketVersionNotMatchOnCoprocessor", func() {
+		failpoint.Return(&coprocessor.Response{
+			RegionError: &errorpb.Error{
+				BucketVersionNotMatch: &errorpb.BucketVersionNotMatch{},
+			},
+		}, nil)
+	})
 	reqCtx, err := newRequestCtx(svr, req.Context, "Coprocessor")
 	if err != nil {
+		println("DEBUG: Coprocessor failpoint triggered, returning bucket_version_not_match")
 		return &coprocessor.Response{OtherError: convertToKeyError(err).String()}, nil
 	}
 	defer reqCtx.finish()

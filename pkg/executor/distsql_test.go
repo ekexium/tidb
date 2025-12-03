@@ -43,6 +43,7 @@ import (
 	"github.com/pingcap/tidb/pkg/types"
 	"github.com/pingcap/tidb/pkg/util/mock"
 	"github.com/pingcap/tidb/pkg/util/paging"
+	"github.com/pingcap/tidb/pkg/util/sqlexec"
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/stretchr/testify/require"
@@ -651,4 +652,90 @@ func TestIndexLookUpPushDownCopTask(t *testing.T) {
 	localIndexLookUpRow := r.Rows()[2]
 	require.Contains(t, localIndexLookUpRow[0], "LocalIndexLookUp", r.String())
 	require.Equal(t, "3", localIndexLookUpRow[2], r.String())
+}
+
+// TestMaxExecutionTimeWithBucketVersionNotMatch tests that when max_execution_time is set
+// and a bucket_version_not_match region error occurs, the query should fail fast with
+// context cancellation rather than retrying properly.
+//
+// This is a regression test for a bug where buildCopTasks with MaxExecutionTime > 0 would:
+// 1. Create a timeout context from the backoffer's context
+// 2. Set this timeout context on the backoffer via SetCtx()
+// 3. Cancel the context when buildCopTasks returns (via defer cancel())
+// 4. This pollutes the backoffer's context, causing subsequent backoff operations to fail
+//
+// The symptom is that queries fail very fast (within milliseconds) instead of retrying
+// on region errors when max_execution_time is set.
+func TestMaxExecutionTimeWithBucketVersionNotMatch(t *testing.T) {
+	store := testkit.CreateMockStore(t)
+	tk := testkit.NewTestKit(t, store)
+	tk.MustExec("use test")
+	tk.MustExec("create table t(id int primary key, c1 int, c2 int, index i(c1))")
+	tk.MustExec("insert into t values(1,1,1),(2,2,2),(3,3,3)")
+
+	// Set max_execution_time to trigger the bug
+	// The value is large enough to not actually timeout
+	tk.MustExec("set @@max_execution_time = 60000") // 60 seconds
+
+	// Check the execution plan first - verify it uses TableReader (coprocessor)
+	planRows := tk.MustQuery("explain select * from t where c1 > 0").Rows()
+	require.Contains(t, planRows[0][0], "TableReader", "Query should use TableReader (coprocessor)")
+
+	// Enable the failpoint to inject bucket_version_not_match error in unistore
+	require.NoError(t, failpoint.Enable("github.com/pingcap/tidb/pkg/store/mockstore/unistore/tikv/injectBucketVersionNotMatchOnCoprocessor", "return"))
+	defer func() {
+		require.NoError(t, failpoint.Disable("github.com/pingcap/tidb/pkg/store/mockstore/unistore/tikv/injectBucketVersionNotMatchOnCoprocessor"))
+	}()
+
+	// Execute a query that will trigger coprocessor request
+	// With the bug, this will fail fast with context.Canceled because:
+	// 1. First cop response gets bucket_version_not_match (injected)
+	// 2. Backoff succeeds
+	// 3. buildCopTasks is called, which sets a timeout context on the backoffer
+	// 4. buildCopTasks returns, cancelling the timeout context
+	// 5. Second cop response gets bucket_version_not_match again (injected)
+	// 6. Backoff fails immediately because context is already cancelled
+	//
+	// Without the bug (after fix), the query should keep retrying and eventually
+	// timeout after 60 seconds (or if we disable the failpoint, succeed).
+	//
+	// To test: we expect the query to fail fast (< 100ms) due to the bug.
+	// A proper implementation would retry for much longer.
+	start := time.Now()
+	rs, err := tk.Exec("select * from t where c1 > 0")
+	if err == nil {
+		// Must drain the result set to actually execute the query
+		_, err = sqlexec.DrainRecordSet(context.Background(), rs, 1024)
+		if rs != nil {
+			rs.Close()
+		}
+	}
+	elapsed := time.Since(start)
+
+	// The query should fail due to the injected region error
+	require.Error(t, err)
+	t.Logf("====== query error %v", err.Error())
+
+	// BUG DETECTION: If the query fails within 100ms, it means the context was
+	// polluted and backoff didn't work properly. With proper backoff, even with
+	// continuous region errors, it should take much longer to exhaust retries.
+	//
+	// The bug manifests as "context canceled" error because:
+	// 1. buildCopTasks creates a timeout context and sets it on the Backoffer
+	// 2. When buildCopTasks returns, defer cancel() cancels this context
+	// 3. The next backoff attempt fails immediately with "context canceled"
+	//
+	// Note: When the bug is fixed, this test should be updated to verify
+	// that the query takes longer (proper backoff behavior).
+	if elapsed < 100*time.Millisecond {
+		t.Logf("Query failed in %v - this indicates the context pollution bug is present", elapsed)
+		// This is the expected behavior WITH the bug
+		// The error should contain "context canceled" due to the polluted context
+		// or "bucket_version_not_match" from the injected region error
+		require.True(t, strings.Contains(err.Error(), "bucket_version_not_match"),
+			"Expected bucket_version_not_match error, got: %v", err)
+	} else {
+		t.Logf("Query took %v - backoff is working, bug may be fixed", elapsed)
+		t.Fail()
+	}
 }

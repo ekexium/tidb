@@ -359,7 +359,11 @@ func buildCopTasks(bo *Backoffer, ranges *KeyRanges, opt *buildCopTaskOpt) ([]*c
 	if req.MaxExecutionTime > 0 {
 		// If the request has a MaxExecutionTime, we need to set the deadline of the context.
 		ctxWithTimeout, cancel := context.WithTimeout(bo.GetCtx(), time.Duration(req.MaxExecutionTime)*time.Millisecond)
-		defer cancel()
+		defer func() {
+			println("DEBUG: buildCopTasks defer cancel() called, cancelling context")
+			cancel()
+		}()
+		println("DEBUG: buildCopTasks setting timeout context on backoffer, MaxExecutionTime=", req.MaxExecutionTime)
 		bo.TiKVBackoffer().SetCtx(ctxWithTimeout)
 	}
 
@@ -1211,17 +1215,22 @@ func (w *liteCopIteratorWorker) liteSendReq(ctx context.Context, it *copIterator
 		return resp
 	}
 	backoffermap := make(map[uint64]*Backoffer)
+	iteration := 0
 	for len(it.tasks) > 0 {
+		iteration++
 		curTask := it.tasks[0]
 		bo := chooseBackoffer(w.ctx, backoffermap, curTask, worker)
+		println("DEBUG: liteSendReq iteration", iteration, "region", curTask.region.GetID(), "context err:", bo.GetCtx().Err())
 		result, err := worker.handleTaskOnce(bo, curTask)
 		if err != nil {
+			println("DEBUG: liteSendReq handleTaskOnce returned error:", err.Error())
 			resp = &copResponse{err: errors.Trace(err)}
 			worker.checkRespOOM(resp)
 			return resp
 		}
 
 		if result != nil && len(result.remains) > 0 {
+			println("DEBUG: liteSendReq got", len(result.remains), "remaining tasks")
 			it.tasks = append(result.remains, it.tasks[1:]...)
 		} else {
 			it.tasks = it.tasks[1:]
@@ -1443,6 +1452,7 @@ func (worker *copIteratorWorker) handleTaskOnce(bo *Backoffer, task *copTask) (*
 	}
 
 	failpoint.InjectCall("onBeforeSendReqCtx", req)
+	println("DEBUG: handleTaskOnce before SendReqCtx, context err:", bo.GetCtx().Err())
 	resp, rpcCtx, storeAddr, err := worker.kvclient.SendReqCtx(bo.TiKVBackoffer(), req, task.region,
 		timeout, getEndPointType(task.storeType), task.storeAddr, ops...)
 	err = derr.ToTiDBErr(err)
@@ -1450,6 +1460,7 @@ func (worker *copIteratorWorker) handleTaskOnce(bo *Backoffer, task *copTask) (*
 		err = worker.req.RunawayChecker.CheckThresholds(nil, 0, err)
 	}
 	if err != nil {
+		println("DEBUG: handleTaskOnce SendReqCtx returned error:", err.Error())
 		if task.storeType == kv.TiDB {
 			return worker.handleTiDBSendReqErr(err, task)
 		}
@@ -1582,6 +1593,8 @@ func (worker *copIteratorWorker) handleCopPagingResult(bo *Backoffer, rpcCtx *ti
 // if we're handling coprocessor paging response, lastRange is the range of last
 // successful response, otherwise it's nil.
 func (worker *copIteratorWorker) handleCopResponse(bo *Backoffer, rpcCtx *tikv.RPCContext, resp *copResponse, cacheKey []byte, cacheValue *coprCacheValue, task *copTask, costTime time.Duration) (*copTaskResult, error) {
+	println("DEBUG: handleCopResponse called, checking context:", bo.GetCtx().Err())
+	println("DEBUG: resp.pbResp.GetRegionError():", resp.pbResp.GetRegionError())
 	if ver := resp.pbResp.GetLatestBucketsVersion(); task.bucketsVer < ver {
 		worker.store.GetRegionCache().UpdateBucketsIfNeeded(task.region, ver)
 	}
@@ -1593,9 +1606,13 @@ func (worker *copIteratorWorker) handleCopResponse(bo *Backoffer, rpcCtx *tikv.R
 		}
 		errStr := fmt.Sprintf("region_id:%v, region_ver:%v, store_type:%s, peer_addr:%s, error:%s",
 			task.region.GetID(), task.region.GetVer(), task.storeType.Name(), task.storeAddr, regionErr.String())
+		println("DEBUG: got region error:", regionErr.String())
+		println("DEBUG: calling bo.Backoff, context err before:", bo.GetCtx().Err())
 		if err := bo.Backoff(tikv.BoRegionMiss(), errors.New(errStr)); err != nil {
+			println("DEBUG: bo.Backoff returned error:", err.Error())
 			return nil, errors.Trace(err)
 		}
+		println("DEBUG: bo.Backoff succeeded, now calling buildCopTasks")
 		// We may meet RegionError at the first packet, but not during visiting the stream.
 		remains, err := buildCopTasks(bo, task.ranges, &buildCopTaskOpt{
 			req:                         worker.req,
@@ -1604,6 +1621,7 @@ func (worker *copIteratorWorker) handleCopResponse(bo *Backoffer, rpcCtx *tikv.R
 			eventCb:                     task.eventCb,
 			ignoreTiKVClientReadTimeout: true,
 		})
+		println("DEBUG: buildCopTasks returned, context err after:", bo.GetCtx().Err())
 		if err != nil {
 			return nil, err
 		}

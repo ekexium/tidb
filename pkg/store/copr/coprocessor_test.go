@@ -932,3 +932,4 @@ func TestBatchStoreCoprOnlySendToLeader(t *testing.T) {
 		require.Equal(t, task.busyThreshold, time.Second)
 	}
 }
+

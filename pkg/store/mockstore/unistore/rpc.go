@@ -113,11 +113,9 @@ func (c *RPCClient) SendRequest(ctx context.Context, addr string, req *tikvrpc.R
 		}
 	})
 
-	select {
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	default:
-	}
+	// Note: We intentionally {don't ah ck<tx.Done() here to match production TiKV behavior.
+	// In production, gRPC sends the request even if context is cancelled, and the caller
+	// detects the cancellation later. This allows us to test the full error path.
 
 	if atomic.LoadInt32(&c.closed) != 0 {
 		// Return `context.Canceled` can break Backoff.
